@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- 1. 버튼을 누르고 있을 때의 상태 (더 어두운 파란색) -->
+    <item android:state_pressed="true">
+        <shape android:shape="rectangle">
+            <solid android:color="#2196F3" /> <!-- Pressed Blue -->
+            <corners android:radius="12dp" /> <!-- 라운딩 크기 -->
+        </shape>
+    </item>
+
+    <!-- 2. 기본 상태 (일반 파란색) -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#2196F3" /> <!-- Primary Blue (#2196F3) -->
+            <corners android:radius="12dp" /> <!-- 라운딩 크기 -->
+        </shape>
+    </item>
+
+</selector>

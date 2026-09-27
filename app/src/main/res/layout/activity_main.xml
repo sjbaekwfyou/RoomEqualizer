@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <!-- ================================================== -->
+    <!-- 영역 1: 버튼 1개 -->
+    <!-- ================================================== -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="#10000000">
+
+        <android.widget.Button
+            android:id="@+id/btnBLEConnection"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginLeft="16dp"
+            android:layout_marginRight="16dp"
+            android:background="@drawable/bg_button"
+            android:text="@string/ble_connection" />
+    </FrameLayout>
+
+    <!-- ================================================== -->
+    <!-- 영역 2: 상단 버튼 + 외곽선 상단에 타이틀이 걸친 EQ 그룹 -->
+    <!-- ================================================== -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:padding="16dp">
+
+        <!-- 2구역 상단 버튼 -->
+        <android.widget.Button
+            android:id="@+id/btnPlayMode"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentTop="true"
+            android:layout_centerHorizontal="true"
+            android:background="@drawable/bg_button"
+            android:text="@string/play_mode" />
+
+        <!-- 2구역 하단: EQ Selection 외곽선 그룹 컨테이너 -->
+        <RelativeLayout
+            android:id="@+id/containerEqGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true">
+
+            <!-- 1. 외곽선 박스 (타이틀 높이의 절반만큼 윗여백 주기) -->
+            <LinearLayout
+                android:id="@+id/boxEqBorder"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/border_eq_group"
+                android:orientation="vertical"
+                android:paddingStart="12dp"
+                android:paddingTop="16dp"
+                android:paddingEnd="12dp"
+                android:paddingBottom="12dp">
+
+                <!-- 라디오 버튼 3개 -->
+                <RadioGroup
+                    android:id="@+id/radioGroupEqSelection"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <RadioButton
+                        android:id="@+id/radioEQDefault"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:checked="true"
+                        android:text="@string/eq_default" />
+
+                    <RadioButton
+                        android:id="@+id/radioEQUser1"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/eq_user1" />
+
+                    <RadioButton
+                        android:id="@+id/radioEQUser2"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/eq_user2" />
+                </RadioGroup>
+            </LinearLayout>
+
+            <!-- 2. 외곽선 위 왼쪽 상단에 걸치는 타이틀 텍스트 -->
+            <TextView
+                android:id="@+id/tvEqSelectionTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentStart="true"
+                android:layout_alignParentTop="true"
+                android:layout_marginStart="16dp"
+                android:background="?android:attr/windowBackground"
+                android:paddingStart="6dp"
+                android:paddingEnd="6dp"
+                android:text="@string/eq_selection"
+                android:textColor="@android:color/black"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+        </RelativeLayout>
+    </RelativeLayout>
+
+    <!-- ================================================== -->
+    <!-- 영역 3: 버튼 1개 -->
+    <!-- ================================================== -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="#10000000">
+
+        <android.widget.Button
+            android:id="@+id/btnMeasurementMode"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginLeft="16dp"
+            android:layout_marginRight="16dp"
+            android:background="@drawable/bg_button"
+            android:text="@string/measurement_mode" />
+    </FrameLayout>
+
+    <!-- ================================================== -->
+    <!-- 영역 4: 버튼 1개 -->
+    <!-- ================================================== -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <android.widget.Button
+            android:id="@+id/btnExit"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginLeft="16dp"
+            android:layout_marginRight="16dp"
+            android:background="@drawable/bg_button"
+            android:text="@string/exit" />
+    </FrameLayout>
+
+</LinearLayout>
