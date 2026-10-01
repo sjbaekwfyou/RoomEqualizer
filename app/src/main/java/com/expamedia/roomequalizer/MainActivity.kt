@@ -206,32 +206,34 @@ class MainActivity : AppCompatActivity() {
 
     private fun startMeasurement() {
         popupLayout2.showMessage2(chirp) { result ->
-            fun restartMeasurement() {
-                Handler(Looper.getMainLooper()).post {
-                    popupLayout2.showMessage5 {
-                        Handler(Looper.getMainLooper()).post {
-                            startMeasurement()
+            Handler(Looper.getMainLooper()).post {
+                var isCanceled = false
+                var IIRcoef = DoubleArray(chirp.size) { 0.0 }
+
+                popupLayout2.showMessage3(
+                    chirp = chirp,
+                    result = result,
+                    IIRcoef = IIRcoef,
+                    listenerCanceled = {
+                        isCanceled = true
+                    },
+                    listener = { value ->
+                        if (isCanceled) return@showMessage3
+
+                        when (value) {
+                            0 -> showPopupLayout3(IIRcoef)
+                            1, 2, 3 -> {
+                                Handler(Looper.getMainLooper()).post {
+                                    popupLayout2.showMessage5 {
+                                        Handler(Looper.getMainLooper()).post {
+                                            startMeasurement()
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
-                }
-            }
-
-            var IIRcoef = DoubleArray(chirp.size) { 0.0 }
-
-            val value = nativeEqulizer.CalculatePEQ(chirp, result, IIRcoef)
-            when(value) {
-                0 -> {
-                    showPopupLayout3()
-                }
-                1 -> {
-                    restartMeasurement()
-                }
-                2 -> {
-                    restartMeasurement()
-                }
-                3 -> {
-                    restartMeasurement()
-                }
+                )
             }
         }
     }
@@ -244,7 +246,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun showPopupLayout3() {
+    private fun showPopupLayout3(IIRcoef: DoubleArray) {
         val popupLayout3 = PopupLayout3(this)
 
         popupLayout3.setOnConfirmListener { eqUser ->

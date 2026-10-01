@@ -20,6 +20,7 @@ import androidx.lifecycle.lifecycleScope
 import com.expamedia.roomequalizer.native.NativeEqualizer
 import com.expamedia.roomequalizer.popup.PopupLayout3.EqUser
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -142,6 +143,30 @@ class PopupLayout2(private val context: Context, private val nativeEqulizer: Nat
                 }
                 dismiss()
             }
+        }
+    }
+
+    fun showMessage3(chirp: DoubleArray, result: DoubleArray, IIRcoef: DoubleArray, listenerCanceled: () -> Unit, listener: (value: Int) -> Unit) {
+        if (!dialog.isShowing) {
+            dialog.show()
+
+            binding.btnButtonID.setOnClickListener {
+                listenerCanceled.invoke()
+                dismiss()
+            }
+
+            (context as? LifecycleOwner)?.lifecycleScope?.launch(Dispatchers.IO) {
+                // 1. [백그라운드 스레드] 무거운 C++ JNI 연산 또는 오디오 처리 수행
+                val value = nativeEqulizer.CalculatePEQ(chirp, result, IIRcoef)
+
+                // 2. [메인 스레드 전환] 연산 결과를 UI에 반영
+                withContext(Dispatchers.Main) {
+                    listener.invoke(value)
+                    dismiss()
+                }
+            }
+
+            setMessage(MessageType.Message3)
         }
     }
 

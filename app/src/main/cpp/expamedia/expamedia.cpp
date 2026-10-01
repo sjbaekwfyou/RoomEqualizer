@@ -1,5 +1,7 @@
 #include <cmath>
 #include "expamedia.h"
+#include <thread>
+#include <chrono>
 
 void GenerateESS(double FS, int ESS_LENGTH, double* chirp, size_t chirpSize) {
     //test code
@@ -25,6 +27,7 @@ int AmbientLevel(double FS, double* result, size_t resultLength) {
 int CalculatePEQ(double FS, int ESS_LENGTH, int N_PEQ, double F_MIN, double F_MAX, double G_MAX, double F_HPF,
                  double* chirp, size_t chirpLength, double* result, size_t resultLength, double* IIRcoef, size_t IIRcoefLength)
 {
+    std::this_thread::sleep_for(std::chrono::seconds(1));
     return 0;    //success
     //return 1;    //error1
     //return 2;    //error2
