@@ -5,11 +5,17 @@ import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.view.LayoutInflater
-import com.expamedia.roomequalizer.databinding.LayoutPop1Binding
+import com.expamedia.roomequalizer.databinding.PopupLayout3Binding
 
-class LayoutPop1(private val context: Context) {
-    private val binding: LayoutPop1Binding by lazy {
-        LayoutPop1Binding.inflate(LayoutInflater.from(context))
+class PopupLayout3(private val context: Context) {
+    enum class EqUser(val modeName: String) {
+        User1("User1"),
+        User2("User2"),
+        Cancel("Cancel");
+    }
+
+    private val binding: PopupLayout3Binding by lazy {
+        PopupLayout3Binding.inflate(LayoutInflater.from(context))
     }
 
     private val dialog: AlertDialog by lazy {
@@ -22,7 +28,7 @@ class LayoutPop1(private val context: Context) {
     }
 
     // 콜백 함수 정의 (다이얼로그 안에서 발생하는 이벤트를 외부로 전달할 때 사용)
-    private var onConfirmListener: ((String) -> Unit)? = null
+    private var onConfirmListener: ((EqUser) -> Unit)? = null
 
     init {
         setupListeners()
@@ -30,12 +36,18 @@ class LayoutPop1(private val context: Context) {
 
     private fun setupListeners() {
         // 서브 레이아웃 내부의 닫기 버튼 이벤트 (ID가 btnClose인 경우)
-        binding.btnStartMeasurement.setOnClickListener {
-            onConfirmListener?.invoke("시작 버튼 클릭됨")
+        binding.btnUser1.setOnClickListener {
+            onConfirmListener?.invoke(EqUser.User1)
             dismiss()
         }
 
-        binding.btnCancelMeasurement.setOnClickListener {
+        binding.btnUser2.setOnClickListener {
+            onConfirmListener?.invoke(EqUser.User2)
+            dismiss()
+        }
+
+        binding.btnCancel.setOnClickListener {
+            onConfirmListener?.invoke(EqUser.Cancel)
             dismiss()
         }
     }
@@ -61,7 +73,7 @@ class LayoutPop1(private val context: Context) {
     /**
      * 외부에서 다이얼로그 이벤트 결과값을 전달받는 리스너 설정
      */
-    fun setOnConfirmListener(listener: (String) -> Unit) {
+    fun setOnConfirmListener(listener: (EqUser) -> Unit) {
         this.onConfirmListener = listener
     }
 }
