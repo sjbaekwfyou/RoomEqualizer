@@ -8,7 +8,10 @@ import android.graphics.drawable.ColorDrawable
 import android.view.LayoutInflater
 import android.view.View
 import androidx.annotation.ColorRes
+import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
+import androidx.appcompat.content.res.AppCompatResources
+import androidx.appcompat.widget.AppCompatDrawableManager
 import androidx.lifecycle.LifecycleOwner
 import com.expamedia.roomequalizer.AudioDeviceManager
 import com.expamedia.roomequalizer.R
@@ -29,20 +32,20 @@ class PopupLayout2(private val context: Context, private val nativeEqulizer: Nat
     }
 
     enum class MessageType(
-        @ColorRes val colorBackground: Int,
+        @DrawableRes val colorBackground: Int,
         @StringRes val tvMessage: Int,
         @StringRes val btMessage: Int,
         val btVisibility: Int,
         val buttonType: ButtonType
     ) {
         NONE(R.color.white, R.string.no_message, R.string.no_message, View.GONE, ButtonType.NONE),
-        Message1(R.color.white, R.string.noti_message1, R.string.no_message, View.GONE, ButtonType.NONE),
-        Message2(R.color.white, R.string.noti_message2, R.string.quit, View.VISIBLE, ButtonType.QUIT),
-        Message3(R.color.white, R.string.noti_message3, R.string.quit, View.VISIBLE, ButtonType.QUIT),
-        Message4(R.color.orange, R.string.noti_message4, R.string.ok, View.VISIBLE, ButtonType.OK),
-        Message5(R.color.orange, R.string.noti_message5, R.string.restart, View.VISIBLE, ButtonType.RESTART),
-        Message6(R.color.orange, R.string.noti_message6, R.string.restart, View.VISIBLE, ButtonType.RESTART),
-        Message7(R.color.orange, R.string.noti_message7, R.string.restart, View.VISIBLE, ButtonType.RESTART);
+        Message1(R.drawable.bg_popup_white, R.string.noti_message1, R.string.no_message, View.GONE, ButtonType.NONE),
+        Message2(R.drawable.bg_popup_white, R.string.noti_message2, R.string.quit, View.VISIBLE, ButtonType.QUIT),
+        Message3(R.drawable.bg_popup_white, R.string.noti_message3, R.string.quit, View.VISIBLE, ButtonType.QUIT),
+        Message4(R.drawable.bg_popup_orange, R.string.noti_message4, R.string.ok, View.VISIBLE, ButtonType.OK),
+        Message5(R.drawable.bg_popup_orange, R.string.noti_message5, R.string.restart, View.VISIBLE, ButtonType.RESTART),
+        Message6(R.drawable.bg_popup_orange, R.string.noti_message6, R.string.restart, View.VISIBLE, ButtonType.RESTART),
+        Message7(R.drawable.bg_popup_orange, R.string.noti_message7, R.string.restart, View.VISIBLE, ButtonType.RESTART);
     }
 
    private val binding: PopupLayout2Binding by lazy {
@@ -69,7 +72,7 @@ class PopupLayout2(private val context: Context, private val nativeEqulizer: Nat
     private fun setMessage(messageType: MessageType) {
         this.messageType = messageType
 
-        binding.background.setBackgroundColor(context.getColor(this.messageType.colorBackground))
+        binding.background.background = AppCompatResources.getDrawable(context, this.messageType.colorBackground)
         binding.tvMessage.text = context.getString(this.messageType.tvMessage)
         binding.btnButtonID.visibility = this.messageType.btVisibility
         binding.btnButtonID.text = context.getString(this.messageType.btMessage)

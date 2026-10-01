@@ -1,5 +1,6 @@
 #include <jni.h>
 #include <string>
+#include "expamedia/expamedia.h"
 
 extern "C"
 JNIEXPORT void JNICALL
@@ -13,24 +14,13 @@ Java_com_expamedia_roomequalizer_native_NativeEqualizer_GenerateESS(
     if (chirp == nullptr) return;
 
     jdouble *buffer = env->GetDoubleArrayElements(chirp, nullptr);
-    if (buffer == nullptr) return;
+    if (buffer) {
+        jsize length = env->GetArrayLength(chirp);
 
-    jsize length = env->GetArrayLength(chirp);
-    {   //test code
-        int count = (length < ESS_LENGTH) ? length : ESS_LENGTH;
+        GenerateESS(FS, ESS_LENGTH, buffer, length);
 
-        double f1 = 20.0;
-        double f2 = FS / 2.0;
-        double T = static_cast<double>(ESS_LENGTH) / FS;
-        double R = std::log(f2 / f1);
-
-        for (int i = 0; i < count; ++i) {
-            double t = static_cast<double>(i) / FS;
-            double phase = (2.0 * M_PI * f1 * T / R) * (std::exp(t * R / T) - 1.0);
-            buffer[i] = std::sin(phase);
-        }
+        env->ReleaseDoubleArrayElements(chirp, buffer, 0);
     }
-    env->ReleaseDoubleArrayElements(chirp, buffer, 0);
 }
 
 extern "C"
@@ -43,13 +33,14 @@ Java_com_expamedia_roomequalizer_native_NativeEqualizer_AmbientLevel(
 ) {
     jint ret = 1;   //NG
     jdouble *buffer = env->GetDoubleArrayElements(result, nullptr);
-    jsize length = env->GetArrayLength(result);
 
     if (buffer) {
-        ret = 0;    //OK
+        jsize length = env->GetArrayLength(result);
+
+        ret = AmbientLevel(FS, buffer, length);
+        env->ReleaseDoubleArrayElements(result, buffer, 0);
     }
 
-    env->ReleaseDoubleArrayElements(result, buffer, 0);
     return ret;
 }
 
@@ -72,23 +63,25 @@ Java_com_expamedia_roomequalizer_native_NativeEqualizer_CalculatePEQ(
     jint ret = 1;
 
     jdouble *chirpBuffer = env->GetDoubleArrayElements(chirp, nullptr);
-    jsize chirpLength = env->GetArrayLength(chirp);
-
     jdouble *resultBuffer = env->GetDoubleArrayElements(result, nullptr);
-    jsize resultLength = env->GetArrayLength(result);
-
     jdouble *IIRcoefBuffer = env->GetDoubleArrayElements(IIRcoef, nullptr);
-    jsize IIRcoefLength = env->GetArrayLength(IIRcoef);
 
     if (chirpBuffer && resultBuffer && IIRcoefBuffer) {
-        ret = 0;    //success
-        //ret = 1;    //error1
-        //ret = 2;    //error2
-        //ret = 3;    //error3
+        jsize chirpLength = env->GetArrayLength(chirp);
+        jsize resultLength = env->GetArrayLength(result);
+        jsize IIRcoefLength = env->GetArrayLength(IIRcoef);
+
+        ret = CalculatePEQ(FS, ESS_LENGTH, N_PEQ, F_MIN, F_MAX, G_MAX, F_HPF, chirpBuffer, chirpLength, resultBuffer, resultLength, IIRcoefBuffer, IIRcoefLength);
     }
 
-    env->ReleaseDoubleArrayElements(chirp, chirpBuffer, 0);
-    env->ReleaseDoubleArrayElements(result, resultBuffer, 0);
-    env->ReleaseDoubleArrayElements(IIRcoef, IIRcoefBuffer, 0);
+    if(chirpBuffer) {
+        env->ReleaseDoubleArrayElements(chirp, chirpBuffer, 0);
+    }
+    if(resultBuffer) {
+        env->ReleaseDoubleArrayElements(result, resultBuffer, 0);
+    }
+    if(IIRcoefBuffer) {
+        env->ReleaseDoubleArrayElements(IIRcoef, IIRcoefBuffer, 0);
+    }
     return ret;
 }
