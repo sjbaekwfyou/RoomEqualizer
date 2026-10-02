@@ -51,8 +51,9 @@ class PopupLayout3(private val context: Context) {
         }
     }
 
-    fun show() {
+    fun show(listener: (EqUser) -> Unit) {
         if (!dialog.isShowing) {
+            onConfirmListener = listener
             dialog.show()
         }
     }
@@ -61,9 +62,5 @@ class PopupLayout3(private val context: Context) {
         if (dialog.isShowing) {
             dialog.dismiss()
         }
-    }
-
-    fun setOnConfirmListener(listener: (EqUser) -> Unit) {
-        this.onConfirmListener = listener
     }
 }

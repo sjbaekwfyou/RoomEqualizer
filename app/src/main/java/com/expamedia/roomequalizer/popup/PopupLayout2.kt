@@ -127,7 +127,7 @@ class PopupLayout2(private val context: Context, private val audioDeviceManager:
         }
     }
 
-    fun showMessage3(chirp: DoubleArray, result: DoubleArray, IIRcoef: DoubleArray, listenerCanceled: () -> Unit, listener: (value: Int) -> Unit) {
+    fun showMessage3(chirp: DoubleArray, result: DoubleArray, listenerCanceled: () -> Unit, listener: (value: Int, IIRcoef: DoubleArray) -> Unit) {
         if (!dialog.isShowing) {
             dialog.show()
 
@@ -137,10 +137,11 @@ class PopupLayout2(private val context: Context, private val audioDeviceManager:
             }
 
             (context as? LifecycleOwner)?.lifecycleScope?.launch(Dispatchers.IO) {
+                val IIRcoef = DoubleArray(chirp.size)
                 val value = nativeEqualizer.calculatePEQ(chirp, result, IIRcoef)
 
                 withContext(Dispatchers.Main) {
-                    listener.invoke(value)
+                    listener.invoke(value, IIRcoef)
                     dismiss()
                 }
             }

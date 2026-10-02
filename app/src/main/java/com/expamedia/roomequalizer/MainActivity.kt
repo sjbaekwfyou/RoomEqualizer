@@ -203,27 +203,42 @@ class MainActivity : AppCompatActivity() {
 
     private fun startMeasurement() {
         fun completeCalculatePEQ(chirp: DoubleArray, result: DoubleArray, IIRcoef: DoubleArray, value: Int) {
-            when (value) {
-                0 -> {
-                    popupLayout3.setOnConfirmListener { eqUser ->
-                        when(eqUser) {
-                            PopupLayout3.EqUser.Cancel -> {
-                                Toast.makeText(this, "CANCEL", Toast.LENGTH_SHORT).show()
+            Handler(Looper.getMainLooper()).post {
+                when (value) {
+                    0 -> {
+                        popupLayout3.show { eqUser ->
+                            when (eqUser) {
+                                PopupLayout3.EqUser.Cancel -> {
+                                    Toast.makeText(this, "CANCEL", Toast.LENGTH_SHORT).show()
+                                }
+
+                                PopupLayout3.EqUser.User1 -> {
+                                    Toast.makeText(this, "User1", Toast.LENGTH_SHORT).show()
+                                }
+
+                                PopupLayout3.EqUser.User2 -> {
+                                    Toast.makeText(this, "User2", Toast.LENGTH_SHORT).show()
+                                }
                             }
-                            PopupLayout3.EqUser.User1 -> {
-                                Toast.makeText(this, "User1", Toast.LENGTH_SHORT).show()
-                            }
-                            PopupLayout3.EqUser.User2 -> {
-                                Toast.makeText(this, "User2", Toast.LENGTH_SHORT).show()
+                            popupLayout3.dismiss()
+                        }
+                    }
+                    1 -> {
+                        popupLayout2.showMessage5 {
+                            Handler(Looper.getMainLooper()).post {
+                                startMeasurement()
                             }
                         }
-                        popupLayout3.dismiss()
                     }
-                    popupLayout3.show()
-                }
-                1, 2, 3 -> {
-                    Handler(Looper.getMainLooper()).post {
-                        popupLayout2.showMessage5 {
+                    2 -> {
+                        popupLayout2.showMessage6 {
+                            Handler(Looper.getMainLooper()).post {
+                                startMeasurement()
+                            }
+                        }
+                    }
+                    3 -> {
+                        popupLayout2.showMessage7 {
                             Handler(Looper.getMainLooper()).post {
                                 startMeasurement()
                             }
@@ -235,13 +250,11 @@ class MainActivity : AppCompatActivity() {
 
         fun calculatePEQ(result: DoubleArray) {
             var isCanceled = false
-            var IIRcoef = DoubleArray(chirp.size)
-
-            popupLayout2.showMessage3(chirp, result, IIRcoef,
+            popupLayout2.showMessage3(chirp, result,
                 listenerCanceled = {
                     isCanceled = true
                 },
-                listener = { value ->
+                listener = { value, IIRcoef ->
                     if (isCanceled) return@showMessage3
 
                     completeCalculatePEQ(chirp, result, IIRcoef, value)
