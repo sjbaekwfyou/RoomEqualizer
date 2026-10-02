@@ -4,7 +4,7 @@
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_expamedia_roomequalizer_native_NativeEqualizer_GenerateESS(
+Java_com_expamedia_roomequalizer_native_NativeEqualizer_nativeGenerateESS(
         JNIEnv *env,
         jobject thiz,
         jdouble FS,
@@ -14,18 +14,25 @@ Java_com_expamedia_roomequalizer_native_NativeEqualizer_GenerateESS(
     if (chirp == nullptr) return;
 
     jdouble *buffer = env->GetDoubleArrayElements(chirp, nullptr);
-    if (buffer) {
+    if (!buffer) {
+        LOGE("GenerateESS. buffer is null.");
+    }
+    else {
         jsize length = env->GetArrayLength(chirp);
-
-        GenerateESS(FS, ESS_LENGTH, buffer, length);
-
+        if(length == ESS_LENGTH) {
+            GenerateESS(FS, ESS_LENGTH, buffer);
+            LOGD("GenerateESS");
+        }
+        else {
+            LOGE("GenerateESS. chirp size is not equal to ESS_LENGTH. [%d vs %d]", ESS_LENGTH, length);
+        }
         env->ReleaseDoubleArrayElements(chirp, buffer, 0);
     }
 }
 
 extern "C"
 JNIEXPORT jint JNICALL
-Java_com_expamedia_roomequalizer_native_NativeEqualizer_AmbientLevel(
+Java_com_expamedia_roomequalizer_native_NativeEqualizer_nativeAmbientLevel(
         JNIEnv *env,
         jobject thiz,
         jdouble FS,
@@ -34,11 +41,15 @@ Java_com_expamedia_roomequalizer_native_NativeEqualizer_AmbientLevel(
     jint ret = 1;   //NG
     jdouble *buffer = env->GetDoubleArrayElements(result, nullptr);
 
-    if (buffer) {
+    if (!buffer) {
+        LOGE("AmbientLevel. buffer is null.");
+    }
+    else {
         jsize length = env->GetArrayLength(result);
-
         ret = AmbientLevel(FS, buffer, length);
         env->ReleaseDoubleArrayElements(result, buffer, 0);
+
+        LOGD("AmbientLevel. result size:%d ret:%d", length, ret);
     }
 
     return ret;
@@ -46,7 +57,7 @@ Java_com_expamedia_roomequalizer_native_NativeEqualizer_AmbientLevel(
 
 extern "C"
 JNIEXPORT jint JNICALL
-Java_com_expamedia_roomequalizer_native_NativeEqualizer_CalculatePEQ(
+Java_com_expamedia_roomequalizer_native_NativeEqualizer_nativeCalculatePEQ(
         JNIEnv *env,
         jobject thiz,
         jdouble FS,
@@ -66,12 +77,33 @@ Java_com_expamedia_roomequalizer_native_NativeEqualizer_CalculatePEQ(
     jdouble *resultBuffer = env->GetDoubleArrayElements(result, nullptr);
     jdouble *IIRcoefBuffer = env->GetDoubleArrayElements(IIRcoef, nullptr);
 
-    if (chirpBuffer && resultBuffer && IIRcoefBuffer) {
+    if (!chirpBuffer) {
+        LOGE("CalculatePEQ. chirpBuffer is null.");
+    }
+    else if (!resultBuffer) {
+        LOGE("CalculatePEQ. resultBuffer is null.");
+    }
+    else if (!IIRcoefBuffer) {
+        LOGE("CalculatePEQ. IIRcoefBuffer is null.");
+    }
+    else {
         jsize chirpLength = env->GetArrayLength(chirp);
         jsize resultLength = env->GetArrayLength(result);
         jsize IIRcoefLength = env->GetArrayLength(IIRcoef);
 
-        ret = CalculatePEQ(FS, ESS_LENGTH, N_PEQ, F_MIN, F_MAX, G_MAX, F_HPF, chirpBuffer, chirpLength, resultBuffer, resultLength, IIRcoefBuffer, IIRcoefLength);
+        if(chirpLength != ESS_LENGTH) {
+            LOGE("CalculatePEQ. chirp size is not equal to ESS_LENGTH. [%d vs %d]", ESS_LENGTH, chirpLength);
+        }
+        else if(resultLength != ESS_LENGTH) {
+            LOGE("CalculatePEQ. result size is not equal to ESS_LENGTH. [%d vs %d]", ESS_LENGTH, resultLength);
+        }
+        else if(IIRcoefLength != ESS_LENGTH) {
+            LOGE("CalculatePEQ. IIRcoef size is not equal to ESS_LENGTH. [%d vs %d]", ESS_LENGTH, IIRcoefLength);
+        }
+        else {
+            ret = CalculatePEQ(FS, ESS_LENGTH, N_PEQ, F_MIN, F_MAX, G_MAX, F_HPF, chirpBuffer, resultBuffer, IIRcoefBuffer);
+            LOGD("CalculatePEQ. ret:%d", ret);
+        }
     }
 
     if(chirpBuffer) {

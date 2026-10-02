@@ -1,30 +1,25 @@
 package com.expamedia.roomequalizer.popup
 
-import android.util.Log
 import android.app.AlertDialog
 import android.content.Context
 import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
 import android.view.LayoutInflater
 import android.view.View
-import androidx.annotation.ColorRes
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.appcompat.content.res.AppCompatResources
-import androidx.appcompat.widget.AppCompatDrawableManager
+import androidx.core.graphics.drawable.toDrawable
 import androidx.lifecycle.LifecycleOwner
 import com.expamedia.roomequalizer.AudioDeviceManager
 import com.expamedia.roomequalizer.R
 import com.expamedia.roomequalizer.databinding.PopupLayout2Binding
 import androidx.lifecycle.lifecycleScope
 import com.expamedia.roomequalizer.native.NativeEqualizer
-import com.expamedia.roomequalizer.popup.PopupLayout3.EqUser
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class PopupLayout2(private val context: Context, private val nativeEqulizer: NativeEqualizer) {
+class PopupLayout2(private val context: Context, private val audioDeviceManager: AudioDeviceManager, private val nativeEqualizer: NativeEqualizer) {
     enum class ButtonType(val message: String) {
         NONE("NONE"),
         QUIT("QUIT"),
@@ -33,9 +28,9 @@ class PopupLayout2(private val context: Context, private val nativeEqulizer: Nat
     }
 
     enum class MessageType(
-        @DrawableRes val colorBackground: Int,
-        @StringRes val tvMessage: Int,
-        @StringRes val btMessage: Int,
+        @param:DrawableRes val colorBackground: Int,
+        @param:StringRes val tvMessage: Int,
+        @param:StringRes val btMessage: Int,
         val btVisibility: Int,
         val buttonType: ButtonType
     ) {
@@ -58,17 +53,11 @@ class PopupLayout2(private val context: Context, private val nativeEqulizer: Nat
             .setView(binding.root)
             .create().apply {
                 // 필요시 배경을 투명하게 만들어 둥근 모서리 적용 가능
-                window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+                window?.setBackgroundDrawable(Color.TRANSPARENT.toDrawable())
             }
     }
 
-    private lateinit var audioDeviceManager: AudioDeviceManager
-
     private var messageType: MessageType = MessageType.NONE
-
-    init {
-        audioDeviceManager = AudioDeviceManager(context)
-    }
 
     private fun setMessage(messageType: MessageType) {
         this.messageType = messageType
@@ -81,9 +70,7 @@ class PopupLayout2(private val context: Context, private val nativeEqulizer: Nat
 
     private fun readRecordBuffer(floatBuffer: FloatArray, listener: (DoubleArray) -> Unit) {
         (context as? LifecycleOwner)?.lifecycleScope?.launch(Dispatchers.IO) {
-            // 24,000개 Float 데이터 재생 및 수신 버퍼 저장
             val recordedFloatBuffer: FloatArray = audioDeviceManager.playAndRecord(floatBuffer)
-
             val recordedDoubleBuffer = DoubleArray(recordedFloatBuffer.size) { i -> recordedFloatBuffer[i].toDouble() }
 
             withContext(Dispatchers.Main) {
@@ -96,25 +83,19 @@ class PopupLayout2(private val context: Context, private val nativeEqulizer: Nat
         if (!dialog.isShowing) {
             dialog.show()
 
-            audioDeviceManager.initAudioDevices()
             setMessage(MessageType.Message1)
 
-            // 2. 비동기 측정 실행
             (context as? LifecycleOwner)?.lifecycleScope?.launch(Dispatchers.IO) {
-                /*val float24000Samples = FloatArray(24000) { index ->
-                // 1kHz Sine wave 생성 예시
-                Math.sin(2.0 * Math.PI * 1000.0 * index / 48000.0).toFloat()
-            }*/
-                val ambientRecoding = FloatArray(24000) { 0.0f }
+                val ambientRecoding = FloatArray(24000)
 
                 readRecordBuffer(ambientRecoding) { recordedDoubleBuffer ->
-                    var level = nativeEqulizer.AmbientLevel(recordedDoubleBuffer)
+                    var level = nativeEqualizer.ambientLevel(recordedDoubleBuffer)
                     when (level) {
                         0 -> {     //OK
                             listenerOK.invoke()
                             dismiss()
                         }
-                        1 -> {     //NG
+                        else -> {     //NG
                             listenerNG.invoke()
                             dismiss()
                         }
@@ -156,10 +137,8 @@ class PopupLayout2(private val context: Context, private val nativeEqulizer: Nat
             }
 
             (context as? LifecycleOwner)?.lifecycleScope?.launch(Dispatchers.IO) {
-                // 1. [백그라운드 스레드] 무거운 C++ JNI 연산 또는 오디오 처리 수행
-                val value = nativeEqulizer.CalculatePEQ(chirp, result, IIRcoef)
+                val value = nativeEqualizer.calculatePEQ(chirp, result, IIRcoef)
 
-                // 2. [메인 스레드 전환] 연산 결과를 UI에 반영
                 withContext(Dispatchers.Main) {
                     listener.invoke(value)
                     dismiss()
@@ -222,14 +201,8 @@ class PopupLayout2(private val context: Context, private val nativeEqulizer: Nat
         }
     }
 
-    /**
-     * 다이얼로그 닫기
-     */
     fun dismiss() {
         if (dialog.isShowing) {
-            // 앱 종료 시 오디오 환경 원복
-            audioDeviceManager.releaseAudioDevices()
-
             dialog.dismiss()
         }
     }

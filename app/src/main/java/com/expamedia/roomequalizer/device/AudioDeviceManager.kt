@@ -17,13 +17,25 @@ class AudioDeviceManager(private val context: Context) {
         private const val SAMPLE_RATE = 48000 // 48kHz
         private const val CHANNEL_IN = AudioFormat.CHANNEL_IN_MONO
         private const val CHANNEL_OUT = AudioFormat.CHANNEL_OUT_MONO
-        // 32-bit Float PCM 포맷으로 변경
         private const val AUDIO_FORMAT = AudioFormat.ENCODING_PCM_FLOAT
     }
 
-    /**
-     * 오디오 장치 기본 통화/녹음 모드 초기화
-     */
+    fun setSpeakerphoneEnabled(enable: Boolean) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (enable) {
+                val speakerDevice = audioManager.availableCommunicationDevices.firstOrNull {
+                    it.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER
+                }
+                speakerDevice?.let { audioManager.setCommunicationDevice(it) }
+            } else {
+                audioManager.clearCommunicationDevice()
+            }
+        } else {
+            @Suppress("DEPRECATION")
+            audioManager.isSpeakerphoneOn = enable
+        }
+    }
+
     fun initAudioDevices() {
         audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
 
@@ -44,24 +56,15 @@ class AudioDeviceManager(private val context: Context) {
             }
         }
         // 출력을 내장 스피커로 설정
-        audioManager.isSpeakerphoneOn = true
+        setSpeakerphoneEnabled(true)
     }
 
-    /**
-     * 48kHz 신호(72,000개의 Float 샘플)를 내장 스피커로 재생하고,
-     * 동시에 블루투스 마이크로부터 입력된 Float 오디오 데이터를 수집하여 버퍼에 저장합니다.
-     *
-     * @param outputFloatData 재생할 72000개의 Float (-1.0f ~ +1.0f) 배열
-     * @return 블루투스 마이크로 수신되어 저장된 FloatArray 버퍼
-     */
     @SuppressLint("MissingPermission")
     suspend fun playAndRecord(outputFloatData: FloatArray): FloatArray = withContext(Dispatchers.IO) {
-        // Float 타입은 샘플당 4바이트
         val bytesPerSample = 4
         val minRecordBufferSize = AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL_IN, AUDIO_FORMAT)
         val recordBufferSize = maxOf(minRecordBufferSize, outputFloatData.size * bytesPerSample)
 
-        // 1. 입력 (블루투스 마이크 레코더) 객체 생성
         val audioRecord = AudioRecord(
             MediaRecorder.AudioSource.VOICE_COMMUNICATION,
             SAMPLE_RATE,
@@ -70,7 +73,6 @@ class AudioDeviceManager(private val context: Context) {
             recordBufferSize
         )
 
-        // 2. 출력 (내장 스피커 플레이어) 객체 생성
         val minTrackBufferSize = AudioTrack.getMinBufferSize(SAMPLE_RATE, CHANNEL_OUT, AUDIO_FORMAT)
         val audioTrack = AudioTrack.Builder()
             .setAudioAttributes(
@@ -90,10 +92,8 @@ class AudioDeviceManager(private val context: Context) {
             .setTransferMode(AudioTrack.MODE_STATIC)
             .build()
 
-        // 스피커로 재생할 72,000개 Float 데이터 작성
         audioTrack.write(outputFloatData, 0, outputFloatData.size, AudioTrack.WRITE_BLOCKING)
 
-        // 수신받아 저장할 FloatArray 버퍼 공간 생성
         val recordedFloatBuffer = FloatArray(outputFloatData.size)
         var totalReadSamples = 0
 
@@ -103,7 +103,6 @@ class AudioDeviceManager(private val context: Context) {
 
             val tempReadBuffer = FloatArray(1024)
 
-            // 72,000개의 Float 샘플을 채울 때까지 순차 수집
             while (totalReadSamples < outputFloatData.size) {
                 val readSize = audioRecord.read(
                     tempReadBuffer,
@@ -136,9 +135,6 @@ class AudioDeviceManager(private val context: Context) {
         return@withContext recordedFloatBuffer
     }
 
-    /**
-     * 오디오 설정 해제
-     */
     fun releaseAudioDevices() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             audioManager.clearCommunicationDevice()
@@ -149,7 +145,7 @@ class AudioDeviceManager(private val context: Context) {
                 audioManager.stopBluetoothSco()
             }
         }
-        audioManager.isSpeakerphoneOn = false
+        setSpeakerphoneEnabled(false)
         audioManager.mode = AudioManager.MODE_NORMAL
     }
 }

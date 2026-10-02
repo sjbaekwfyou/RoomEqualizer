@@ -26,30 +26,39 @@ import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
-    private lateinit var btManager: BluetoothDeviceManager
-    private var receiveJob: Job? = null // 데이터 수신 루프 관리용 코루틴 Job
-    private lateinit var popupLayout2: PopupLayout2
+    private lateinit var bluetoothDeviceManager: BluetoothDeviceManager
+    private lateinit var audioDeviceManager: AudioDeviceManager
 
-    private lateinit var nativeEqulizer: NativeEqualizer
+    private lateinit var nativeEqualizer: NativeEqualizer
     private lateinit var chirp: DoubleArray
+
+    private lateinit var popupLayout1: PopupLayout1
+    private lateinit var popupLayout2: PopupLayout2
+    private lateinit var popupLayout3: PopupLayout3
+
+    private var receiveJob: Job? = null // 데이터 수신 루프 관리용 코루틴 Job
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        nativeEqulizer = NativeEqualizer()
+        // 권한 확인 및 요청
+        checkPermissionsAudio()
 
-        chirp = DoubleArray(nativeEqulizer.ESS_LENGTH) { 0.0 }
-        nativeEqulizer.GenerateESS(chirp)
+        bluetoothDeviceManager = BluetoothDeviceManager(this)
 
-        popupLayout2 = PopupLayout2(this, nativeEqulizer)
+        audioDeviceManager = AudioDeviceManager(this)
+        audioDeviceManager.initAudioDevices()
+
+        nativeEqualizer = NativeEqualizer()
+        chirp = DoubleArray(nativeEqualizer.ESS_LENGTH)
+        nativeEqualizer.generateESS(chirp)
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        btManager = BluetoothDeviceManager(this)
-
-        // 권한 확인 및 요청
-        checkPermissionsAudio()
+        popupLayout1 = PopupLayout1(this)
+        popupLayout2 = PopupLayout2(this, audioDeviceManager, nativeEqualizer)
+        popupLayout3 = PopupLayout3(this)
 
         binding.btnBLEConnection.setOnClickListener {
             checkPermissionsBluetooth()
@@ -70,7 +79,9 @@ class MainActivity : AppCompatActivity() {
         binding.btnMeasurementMode.setOnClickListener {
             popupLayout2.showMessage1(
                 listenerOK = {
-                    showPopupLayout1()
+                    popupLayout1.show {
+                        startMeasurement()
+                    }
                 },
                 listenerNG = {
                     Handler(Looper.getMainLooper()).post {
@@ -88,8 +99,9 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
 
-        btManager.disconnectAudioDevice()
-        btManager.disconnectGeneralDevice()
+        bluetoothDeviceManager.disconnectAudioDevice()
+        bluetoothDeviceManager.disconnectGeneralDevice()
+        audioDeviceManager.releaseAudioDevices()
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
@@ -132,7 +144,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun checkPermissionsBluetooth() {
-        // 필수 권한 요청 (Android 12 대응)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             ActivityCompat.requestPermissions(
                 this,
@@ -145,7 +156,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showPopupLayoutBluetooth() {
-        var pairedDevices: List<BluetoothDeviceInfo> = btManager.getNonAudioPairedDevices()
+        val pairedDevices: List<BluetoothDeviceInfo> = bluetoothDeviceManager.getNonAudioPairedDevices()
 
         if (pairedDevices.isEmpty()) {
             AlertDialog.Builder(this)
@@ -165,35 +176,21 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        // 2. 팝업 다이얼로그 표시
         PopupLayoutBluetooth(this, pairedDevices) { selectedDevice ->
-            // 사용자가 장비를 선택했을 때 실행되는 콜백
             val deviceName = selectedDevice.name ?: "알 수 없는 기기"
             Toast.makeText(this, "$deviceName 연결 시도 중...", Toast.LENGTH_SHORT).show()
 
-            /*btManager.connectAudioDevice(selectedDevice) { isSuccess ->
-                if (isSuccess) {
-                    Toast.makeText(this, "오디오 경로가 블루투스로 설정되었습니다.", Toast.LENGTH_SHORT).show()
-                    // Record / Playback 동작 실행
-                    audioDeviceManager.initAudioDevices()
-                } else {
-                    Toast.makeText(this, "오디오 경로 설정 실패", Toast.LENGTH_SHORT).show()
-                }
-            }*/
             lifecycleScope.launch {
                 Toast.makeText(this@MainActivity, "소켓 연결 시도 중...", Toast.LENGTH_SHORT).show()
 
-                val isConnected = btManager.connectGeneralDevice(selectedDevice)
+                val isConnected = bluetoothDeviceManager.connectGeneralDevice(selectedDevice)
                 if (isConnected) {
-                    // 2. 입출력 스트림 바인딩
-                    btManager.setupStreams()
+                    bluetoothDeviceManager.setupStreams()
                     Toast.makeText(this@MainActivity, "연결 성공! 데이터 수신 대기 중...", Toast.LENGTH_SHORT).show()
 
-                    // 3. 백그라운드 데이터 수신 루프 실행
                     receiveJob?.cancel() // 기존 수신 작업이 있다면 취소
                     receiveJob = lifecycleScope.launch {
-                        btManager.startListening { receivedData ->
-                            // 장치로부터 데이터 수신 시 호출됨 (UI 스레드)
+                        bluetoothDeviceManager.startListening { receivedData ->
                             Toast.makeText(this@MainActivity, "\n[수신]: $receivedData", Toast.LENGTH_SHORT).show()
                         }
                     }
@@ -205,65 +202,57 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startMeasurement() {
-        popupLayout2.showMessage2(chirp) { result ->
-            Handler(Looper.getMainLooper()).post {
-                var isCanceled = false
-                var IIRcoef = DoubleArray(chirp.size) { 0.0 }
-
-                popupLayout2.showMessage3(
-                    chirp = chirp,
-                    result = result,
-                    IIRcoef = IIRcoef,
-                    listenerCanceled = {
-                        isCanceled = true
-                    },
-                    listener = { value ->
-                        if (isCanceled) return@showMessage3
-
-                        when (value) {
-                            0 -> showPopupLayout3(IIRcoef)
-                            1, 2, 3 -> {
-                                Handler(Looper.getMainLooper()).post {
-                                    popupLayout2.showMessage5 {
-                                        Handler(Looper.getMainLooper()).post {
-                                            startMeasurement()
-                                        }
-                                    }
-                                }
+        fun completeCalculatePEQ(chirp: DoubleArray, result: DoubleArray, IIRcoef: DoubleArray, value: Int) {
+            when (value) {
+                0 -> {
+                    popupLayout3.setOnConfirmListener { eqUser ->
+                        when(eqUser) {
+                            PopupLayout3.EqUser.Cancel -> {
+                                Toast.makeText(this, "CANCEL", Toast.LENGTH_SHORT).show()
+                            }
+                            PopupLayout3.EqUser.User1 -> {
+                                Toast.makeText(this, "User1", Toast.LENGTH_SHORT).show()
+                            }
+                            PopupLayout3.EqUser.User2 -> {
+                                Toast.makeText(this, "User2", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                        popupLayout3.dismiss()
+                    }
+                    popupLayout3.show()
+                }
+                1, 2, 3 -> {
+                    Handler(Looper.getMainLooper()).post {
+                        popupLayout2.showMessage5 {
+                            Handler(Looper.getMainLooper()).post {
+                                startMeasurement()
                             }
                         }
                     }
-                )
-            }
-        }
-    }
-
-    private fun showPopupLayout1() {
-        val popupLayout1 = PopupLayout1(this)
-
-        popupLayout1.show {
-            startMeasurement()
-        }
-    }
-
-    private fun showPopupLayout3(IIRcoef: DoubleArray) {
-        val popupLayout3 = PopupLayout3(this)
-
-        popupLayout3.setOnConfirmListener { eqUser ->
-            when(eqUser) {
-                PopupLayout3.EqUser.Cancel -> {
-                    Toast.makeText(this, "CANCEL", Toast.LENGTH_SHORT).show()
-                }
-                PopupLayout3.EqUser.User1 -> {
-                    Toast.makeText(this, "User1", Toast.LENGTH_SHORT).show()
-                }
-                PopupLayout3.EqUser.User2 -> {
-                    Toast.makeText(this, "User2", Toast.LENGTH_SHORT).show()
                 }
             }
-
-            popupLayout3.dismiss()
         }
-        popupLayout3.show()
+
+        fun calculatePEQ(result: DoubleArray) {
+            var isCanceled = false
+            var IIRcoef = DoubleArray(chirp.size)
+
+            popupLayout2.showMessage3(chirp, result, IIRcoef,
+                listenerCanceled = {
+                    isCanceled = true
+                },
+                listener = { value ->
+                    if (isCanceled) return@showMessage3
+
+                    completeCalculatePEQ(chirp, result, IIRcoef, value)
+                }
+            )
+        }
+
+        popupLayout2.showMessage2(chirp) { result ->
+            Handler(Looper.getMainLooper()).post {
+                calculatePEQ(result)
+            }
+        }
     }
 }

@@ -1,5 +1,6 @@
 package com.expamedia.roomequalizer.device
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothClass
@@ -14,6 +15,7 @@ import android.media.AudioDeviceInfo
 import com.expamedia.roomequalizer.data.BluetoothDeviceInfo
 import android.media.AudioManager
 import android.os.Build
+import androidx.annotation.RequiresPermission
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
@@ -46,12 +48,12 @@ class BluetoothDeviceManager(private val context: Context) {
         }
     }
 
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     private fun isAudioDevice(device: BluetoothDevice): Boolean {
         val bluetoothClass = device.bluetoothClass ?: return false
         val deviceClass = bluetoothClass.deviceClass
 
         return when (deviceClass) {
-            // 헤드셋, 이어폰, 스피커, 마이크 관련 분류 전체 제외
             BluetoothClass.Device.AUDIO_VIDEO_HEADPHONES,
             BluetoothClass.Device.AUDIO_VIDEO_WEARABLE_HEADSET,
             BluetoothClass.Device.AUDIO_VIDEO_LOUDSPEAKER,
@@ -61,7 +63,6 @@ class BluetoothDeviceManager(private val context: Context) {
             BluetoothClass.Device.AUDIO_VIDEO_PORTABLE_AUDIO -> true
 
             else -> {
-                // 주 클래스(Major Class)가 AUDIO_VIDEO인 경우도 추가 예외 처리
                 bluetoothClass.majorDeviceClass == BluetoothClass.Device.Major.AUDIO_VIDEO
             }
         }

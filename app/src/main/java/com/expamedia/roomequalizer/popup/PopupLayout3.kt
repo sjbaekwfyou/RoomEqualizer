@@ -3,8 +3,8 @@ package com.expamedia.roomequalizer.popup
 import android.app.AlertDialog
 import android.content.Context
 import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
 import android.view.LayoutInflater
+import androidx.core.graphics.drawable.toDrawable
 import com.expamedia.roomequalizer.databinding.PopupLayout3Binding
 
 class PopupLayout3(private val context: Context) {
@@ -23,11 +23,10 @@ class PopupLayout3(private val context: Context) {
             .setView(binding.root)
             .create().apply {
                 // 필요시 배경을 투명하게 만들어 둥근 모서리 적용 가능
-                window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+                window?.setBackgroundDrawable(Color.TRANSPARENT.toDrawable())
             }
     }
 
-    // 콜백 함수 정의 (다이얼로그 안에서 발생하는 이벤트를 외부로 전달할 때 사용)
     private var onConfirmListener: ((EqUser) -> Unit)? = null
 
     init {
@@ -52,27 +51,18 @@ class PopupLayout3(private val context: Context) {
         }
     }
 
-    /**
-     * 다이얼로그 표시
-     */
     fun show() {
         if (!dialog.isShowing) {
             dialog.show()
         }
     }
 
-    /**
-     * 다이얼로그 닫기
-     */
     fun dismiss() {
         if (dialog.isShowing) {
             dialog.dismiss()
         }
     }
 
-    /**
-     * 외부에서 다이얼로그 이벤트 결과값을 전달받는 리스너 설정
-     */
     fun setOnConfirmListener(listener: (EqUser) -> Unit) {
         this.onConfirmListener = listener
     }
