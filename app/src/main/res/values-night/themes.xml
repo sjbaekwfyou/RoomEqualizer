@@ -13,4 +13,17 @@
         <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
         <!-- Customize your theme here. -->
     </style>
+    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
+        <!-- 💡 1) 스플래시 전체 배경색: 하얀색 -->
+        <item name="windowSplashScreenBackground">#FFFFFF</item>
+
+        <!-- 💡 2) 최초 원형 프레임 아이콘 내부 배경색: 하얀색 -->
+        <item name="windowSplashScreenIconBackgroundColor">#FFFFFF</item>
+
+        <!-- 스플래시 로고 지정 (또는 투명 처리 가능) -->
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_expamedia_logo</item>
+
+        <!-- 스플래시 완료 후 메인 테마로 전환 -->
+        <item name="postSplashScreenTheme">@style/Theme.RoomEqualizer</item>
+    </style>
 </resources>

@@ -12,18 +12,22 @@
     <string name="cancel">CANCEL</string>
     <string name="quit">QUIT</string>
     <string name="ok">OK</string>
+    <string name="fail">Fail</string>
     <string name="restart">RESTART</string>
-    <string name="no_message"></string>
+    <string name="no_message"> </string>
     <string name="noti_measurement">Measurement sequence for room calibration will be started. Please turn off any noise source like air conditioner, TV, radio etc. and keep quiet during the test signal plays.\n\nTap START button when you are ready.</string>
     <string name="noti_finished_measurement">Measurement finished. Please select location to save the result.</string>
-    <string name="noti_message1">Monitoring ambient noise level. Please wait...</string>
-    <string name="noti_message2">Measurement sequence progressing...</string>
-    <string name="noti_message3">Measurement result analysis progressing...</string>
+    <string name="noti_message1">Monitoring ambient noise level. Please wait…</string>
+    <string name="noti_message2">Measurement sequence progressing…</string>
+    <string name="noti_message3">Measurement result analysis progressing…</string>
     <string name="noti_message4">Ambient noise level is high. Please remove noise sources and try again.</string>
     <string name="noti_message5">Noise detected during measurement. Remove noise source and tap RESTART button.</string>
     <string name="noti_message6">Please increase main volume by %d dB and try again.</string>
     <string name="noti_message7">Please decrease main volume by %d dB and try again.</string>
+    <string name="title_no_audio">No Audio Device Found</string>
+    <string name="alert_no_audio">No audio device found.\nPlease pair a Bluetooth microphone or headset first under [Settings] > [Bluetooth].</string>
     <string name="title_no_bluetooth">No Bluetooth Device Found</string>
+    <string name="alert_no_bluetooth">No measurement Bluetooth device found.\nPlease pair a Bluetooth device first under [Settings] > [Bluetooth].</string>
     <string name="button_no_bluetooth">Open Settings</string>
-    <string name="alert_no_bluetooth">No measurement Bluetooth device found.\nPlease pair a Bluetooth microphone or headset first under [Settings] > [Bluetooth].</string>
+    <string name="alert_bluetooth_connection_failed">Socket connection failed.</string>">
 </resources>

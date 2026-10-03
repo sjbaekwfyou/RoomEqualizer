@@ -72,7 +72,8 @@ class BluetoothDeviceManager(private val context: Context) {
     fun getNonAudioPairedDevices(): List<BluetoothDeviceInfo> {
         val pairedDevices = bluetoothAdapter?.bondedDevices ?: return emptyList()
 
-        if(pairedDevices.isEmpty()) {
+        val debugMode: Boolean = true
+        if (debugMode && pairedDevices.isEmpty()) {
             return listOf(
                 BluetoothDeviceInfo("Sony WH-1000XM5 (Dummy)", "00:11:22:33:44:55"),
                 BluetoothDeviceInfo("Galaxy Buds2 Pro (Dummy)", "AA:BB:CC:DD:EE:FF"),

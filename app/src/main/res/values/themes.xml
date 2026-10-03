@@ -1,16 +1,25 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Theme.RoomEqualizer" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
-        <!-- Primary brand color. -->
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- 1. 앱의 기본 메인 테마 -->
+    <style name="Theme.RoomEqualizer" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <!-- 기존 앱 기본 설정 항목들... -->
         <item name="colorPrimary">@color/purple_500</item>
-        <item name="colorPrimaryVariant">@color/purple_700</item>
-        <item name="colorOnPrimary">@color/white</item>
-        <!-- Secondary brand color. -->
-        <item name="colorSecondary">@color/teal_200</item>
-        <item name="colorSecondaryVariant">@color/teal_700</item>
-        <item name="colorOnSecondary">@color/black</item>
-        <!-- Status bar color. -->
-        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
-        <!-- Customize your theme here. -->
+        <item name="colorPrimaryDark">@color/purple_700</item>
+        <item name="colorAccent">@color/teal_200</item>
     </style>
+    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
+        <!-- 💡 1) 스플래시 전체 배경색: 하얀색 -->
+        <item name="windowSplashScreenBackground">#FFFFFF</item>
+
+        <!-- 💡 2) 최초 원형 프레임 아이콘 내부 배경색: 하얀색 -->
+        <item name="windowSplashScreenIconBackgroundColor">#FFFFFF</item>
+
+        <!-- 스플래시 로고 지정 (또는 투명 처리 가능) -->
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_expamedia_logo</item>
+
+        <!-- 스플래시 완료 후 메인 테마로 전환 -->
+        <item name="postSplashScreenTheme">@style/Theme.RoomEqualizer</item>
+    </style>
+
 </resources>

@@ -8,8 +8,9 @@ import androidx.appcompat.app.AlertDialog
 import com.expamedia.roomequalizer.data.BluetoothDeviceInfo
 import com.expamedia.roomequalizer.databinding.PopupLayoutBluetoothBinding
 
-class PopupLayoutBluetooth(
+class PopupLayoutBluetooth (
     private val context: Context,
+    private val title: String,
     private val deviceList: List<BluetoothDeviceInfo>,
     private val onDeviceSelected: (BluetoothDeviceInfo) -> Unit
 ) {
@@ -28,7 +29,7 @@ class PopupLayoutBluetooth(
         binding.listViewDevices.adapter = adapter
 
         val dialog = AlertDialog.Builder(context)
-            .setTitle("BLE Devices")
+            .setTitle(title)
             .setView(binding.root)
             .create()
 

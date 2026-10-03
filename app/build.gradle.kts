@@ -46,6 +46,8 @@ android {
 }
 
 dependencies {
+    // AndroidX SplashScreen API 라이브러리
+    implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.constraintlayout)
     implementation(libs.androidx.core.ktx)
