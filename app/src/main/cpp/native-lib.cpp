@@ -4,7 +4,7 @@
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_expamedia_roomequalizer_native_NativeEqualizer_nativeInitialize(
+Java_com_expamedia_roomequalizer_api_NativeEqualizer_nativeInitialize(
         JNIEnv *env,
         jobject thiz,
         jstring externalFilesDir
@@ -24,7 +24,7 @@ Java_com_expamedia_roomequalizer_native_NativeEqualizer_nativeInitialize(
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_expamedia_roomequalizer_native_NativeEqualizer_nativeGenerateESS(
+Java_com_expamedia_roomequalizer_api_NativeEqualizer_nativeGenerateESS(
         JNIEnv *env,
         jobject thiz,
         jfloat FS,
@@ -52,7 +52,7 @@ Java_com_expamedia_roomequalizer_native_NativeEqualizer_nativeGenerateESS(
 
 extern "C"
 JNIEXPORT jint JNICALL
-Java_com_expamedia_roomequalizer_native_NativeEqualizer_nativeAmbientLevel(
+Java_com_expamedia_roomequalizer_api_NativeEqualizer_nativeAmbientLevel(
         JNIEnv *env,
         jobject thiz,
         jfloat FS,
@@ -77,7 +77,7 @@ Java_com_expamedia_roomequalizer_native_NativeEqualizer_nativeAmbientLevel(
 
 extern "C"
 JNIEXPORT jint JNICALL
-Java_com_expamedia_roomequalizer_native_NativeEqualizer_nativeCalculatePEQ(
+Java_com_expamedia_roomequalizer_api_NativeEqualizer_nativeCalculatePEQ(
         JNIEnv *env,
         jobject thiz,
         jfloat FS,

@@ -13,10 +13,11 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
+import com.expamedia.roomequalizer.api.BleApi
 import com.expamedia.roomequalizer.data.BluetoothDeviceInfo
 import com.expamedia.roomequalizer.databinding.ActivityMainBinding
 import com.expamedia.roomequalizer.device.BluetoothDeviceManager
-import com.expamedia.roomequalizer.native.NativeEqualizer
+import com.expamedia.roomequalizer.api.NativeEqualizer
 import com.expamedia.roomequalizer.popup.PopupLayout1
 import com.expamedia.roomequalizer.popup.PopupLayout2
 import com.expamedia.roomequalizer.popup.PopupLayout3
@@ -31,6 +32,7 @@ class MainActivity : AppCompatActivity() {
     private var discoveryReceiver: BroadcastReceiver? = null
     private val discoveredDeviceList = mutableListOf<BluetoothDeviceInfo>()
     private lateinit var bluetoothDeviceManager: BluetoothDeviceManager
+    private var bleApi: BleApi? = null
 
     private lateinit var audioDeviceManager: AudioDeviceManager
 
@@ -72,25 +74,39 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.btnPlayMode.setOnClickListener {
-            // 실행할 로직 작성
+            lifecycleScope.launch {
+                bleApi?.modeSetting(BleApi.ModeType.PLAY_MODE)
+            }
         }
 
         binding.radioEQDefault.isChecked = true
         binding.radioGroupEqSelection.setOnCheckedChangeListener { _, checkedId ->
             when (checkedId) {
                 R.id.radioEQDefault -> {
-                    Toast.makeText(this, "Default", Toast.LENGTH_SHORT).show()
+                    //Toast.makeText(this, "Default", Toast.LENGTH_SHORT).show()
+                    lifecycleScope.launch {
+                        bleApi?.setEQMode(BleApi.EqModeType.EQ_MODE_DEFAULT)
+                    }
                 }
                 R.id.radioEQUser1 -> {
-                    Toast.makeText(this, "User1", Toast.LENGTH_SHORT).show()
+                    //Toast.makeText(this, "User1", Toast.LENGTH_SHORT).show()
+                    lifecycleScope.launch {
+                        bleApi?.setEQMode(BleApi.EqModeType.EQ_MODE_USER1)
+                    }
                 }
                 R.id.radioEQUser2 -> {
-                    Toast.makeText(this, "User2", Toast.LENGTH_SHORT).show()
+                    //Toast.makeText(this, "User2", Toast.LENGTH_SHORT).show()
+                    lifecycleScope.launch {
+                        bleApi?.setEQMode(BleApi.EqModeType.EQ_MODE_USER2)
+                    }
                 }
             }
         }
 
         binding.btnMeasurementMode.setOnClickListener {
+            lifecycleScope.launch {
+                bleApi?.modeSetting(BleApi.ModeType.MEASUREMENT_MODE)
+            }
             showPopupLayoutAudio()
         }
 
@@ -188,7 +204,6 @@ class MainActivity : AppCompatActivity() {
                     }
                 },
                 receiverOut = { receiver ->
-                    // [콜백 2] 생성된 BroadcastReceiver를 인자로 받아 Activity 변수에 저장
                     discoveryReceiver = receiver
                 }
             )
@@ -219,10 +234,27 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 Toast.makeText(this@MainActivity, "Connected! Awaiting data stream...", Toast.LENGTH_SHORT).show()
+
                 bluetoothDeviceManager.setupStreams()
+
+                bleApi = BleApi(this@MainActivity, bluetoothDeviceManager)
+                bleApi?.getEQMode()
+
                 bluetoothDeviceManager.startListening { receivedData ->
                     lifecycleScope.launch(Dispatchers.Main) {
-                        Toast.makeText(this@MainActivity, "\n[수신]: ${receivedData.size}", Toast.LENGTH_SHORT).show()
+                        //Toast.makeText(this@MainActivity, "\n[수신]: ${receivedData.size}", Toast.LENGTH_SHORT).show()
+                        bleApi?.parseCmd(receivedData, listenerMode = { modeType ->
+                            Toast.makeText(this@MainActivity, "Mode set to $modeType", Toast.LENGTH_SHORT).show()
+                        }, listenerEqMode = { eqModeType ->
+                            Toast.makeText(this@MainActivity, "EqMode set to $eqModeType", Toast.LENGTH_SHORT).show()
+
+                        }, listenerGetEqMode = { eqModeType ->
+                            when(eqModeType) {
+                                BleApi.EqModeType.EQ_MODE_DEFAULT -> binding.radioEQDefault.isChecked = true
+                                BleApi.EqModeType.EQ_MODE_USER1 -> binding.radioEQUser1.isChecked = true
+                                BleApi.EqModeType.EQ_MODE_USER2 -> binding.radioEQUser2.isChecked = true
+                            }
+                        })
                     }
                 }
             }

@@ -88,6 +88,13 @@ class BluetoothDeviceManager(private val context: Context) {
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     private fun checkDevice(device: BluetoothDevice): Boolean {
+        val hasValidName = try {
+            !device.name.isNullOrBlank()
+        } catch (e: SecurityException) {
+            false
+        }
+        if (!hasValidName) return false
+
         val bluetoothClass = device.bluetoothClass ?: return false
         val deviceClass = bluetoothClass.deviceClass
 

@@ -72,7 +72,6 @@ class PopupLayoutBluetooth (
      * 💡 3. 외부(스캔 콜백)에서 실시간으로 새 기기를 추가할 때 호출하는 함수
      */
     fun addDevice(deviceInfo: BluetoothDeviceInfo) {
-        // 중복 추가 방지 (MAC 주소 기준)
         if (displayDeviceList.any { it.address == deviceInfo.address }) return
 
         displayDeviceList.add(deviceInfo)
@@ -80,7 +79,6 @@ class PopupLayoutBluetooth (
         val name = deviceInfo.name.ifBlank { (context as AppCompatActivity).getString(R.string.unknown_device) }
         val displayText = "$name\n(${deviceInfo.address})"
 
-        // UI 스레드에서 어댑터에 데이터 추가 및 갱신
         adapter?.add(displayText)
         adapter?.notifyDataSetChanged()
     }

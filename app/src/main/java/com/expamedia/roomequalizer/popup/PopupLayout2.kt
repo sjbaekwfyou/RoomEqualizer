@@ -14,7 +14,7 @@ import com.expamedia.roomequalizer.AudioDeviceManager
 import com.expamedia.roomequalizer.R
 import com.expamedia.roomequalizer.databinding.PopupLayout2Binding
 import androidx.lifecycle.lifecycleScope
-import com.expamedia.roomequalizer.native.NativeEqualizer
+import com.expamedia.roomequalizer.api.NativeEqualizer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
