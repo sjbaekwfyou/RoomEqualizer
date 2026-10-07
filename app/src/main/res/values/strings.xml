@@ -15,6 +15,8 @@
     <string name="fail">Fail</string>
     <string name="restart">RESTART</string>
     <string name="no_message"> </string>
+    <string name="ble_devices">BLE Devices</string>
+    <string name="unknown_device">Unknown device</string>
     <string name="noti_measurement">Measurement sequence for room calibration will be started. Please turn off any noise source like air conditioner, TV, radio etc. and keep quiet during the test signal plays.\n\nTap START button when you are ready.</string>
     <string name="noti_finished_measurement">Measurement finished. Please select location to save the result.</string>
     <string name="noti_message1">Monitoring ambient noise level. Please wait…</string>

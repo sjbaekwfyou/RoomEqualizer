@@ -27,7 +27,7 @@ class PopupLayout3(private val context: Context) {
             }
     }
 
-    private var onConfirmListener: ((EqUser) -> Unit)? = null
+    private var onConfirmListener: ((EqUser) -> Boolean)? = null
 
     init {
         setupListeners()
@@ -36,26 +36,33 @@ class PopupLayout3(private val context: Context) {
     private fun setupListeners() {
         // 서브 레이아웃 내부의 닫기 버튼 이벤트 (ID가 btnClose인 경우)
         binding.btnUser1.setOnClickListener {
-            onConfirmListener?.invoke(EqUser.User1)
+            if (onConfirmListener?.invoke(EqUser.User1) == true) {
+                return@setOnClickListener
+            }
             dismiss()
         }
 
         binding.btnUser2.setOnClickListener {
-            onConfirmListener?.invoke(EqUser.User2)
+            if (onConfirmListener?.invoke(EqUser.User2) == true) {
+                return@setOnClickListener
+            }
             dismiss()
         }
 
         binding.btnCancel.setOnClickListener {
-            onConfirmListener?.invoke(EqUser.Cancel)
+            if (onConfirmListener?.invoke(EqUser.Cancel) == true) {
+                return@setOnClickListener
+            }
             dismiss()
         }
     }
 
-    fun show(listener: (EqUser) -> Unit) {
+    fun show(listener: (EqUser) -> Boolean) {
         if (!dialog.isShowing) {
-            onConfirmListener = listener
             dialog.show()
         }
+
+        onConfirmListener = listener
     }
 
     fun dismiss() {

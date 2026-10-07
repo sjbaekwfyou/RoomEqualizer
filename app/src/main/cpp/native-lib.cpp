@@ -4,16 +4,36 @@
 
 extern "C"
 JNIEXPORT void JNICALL
+Java_com_expamedia_roomequalizer_native_NativeEqualizer_nativeInitialize(
+        JNIEnv *env,
+        jobject thiz,
+        jstring externalFilesDir
+) {
+    if (externalFilesDir == nullptr) return;
+
+    const char *buffer = env->GetStringUTFChars(externalFilesDir, nullptr);
+    if (!buffer) {
+        LOGE("setExternalFilesDir. buffer is null.");
+    }
+    else {
+        LOGD("setExternalFilesDir. externalFilesDir is %s", buffer);
+        SetExternalFilesDir(buffer);
+        env->ReleaseStringUTFChars(externalFilesDir, buffer);
+    }
+}
+
+extern "C"
+JNIEXPORT void JNICALL
 Java_com_expamedia_roomequalizer_native_NativeEqualizer_nativeGenerateESS(
         JNIEnv *env,
         jobject thiz,
-        jdouble FS,
+        jfloat FS,
         jint ESS_LENGTH,
-        jdoubleArray chirp
+        jfloatArray chirp
 ) {
     if (chirp == nullptr) return;
 
-    jdouble *buffer = env->GetDoubleArrayElements(chirp, nullptr);
+    jfloat *buffer = env->GetFloatArrayElements(chirp, nullptr);
     if (!buffer) {
         LOGE("GenerateESS. buffer is null.");
     }
@@ -26,7 +46,7 @@ Java_com_expamedia_roomequalizer_native_NativeEqualizer_nativeGenerateESS(
         else {
             LOGE("GenerateESS. chirp size is not equal to ESS_LENGTH. [%d vs %d]", ESS_LENGTH, length);
         }
-        env->ReleaseDoubleArrayElements(chirp, buffer, 0);
+        env->ReleaseFloatArrayElements(chirp, buffer, 0);
     }
 }
 
@@ -35,11 +55,11 @@ JNIEXPORT jint JNICALL
 Java_com_expamedia_roomequalizer_native_NativeEqualizer_nativeAmbientLevel(
         JNIEnv *env,
         jobject thiz,
-        jdouble FS,
-        jdoubleArray result
+        jfloat FS,
+        jfloatArray result
 ) {
     jint ret = 1;   //NG
-    jdouble *buffer = env->GetDoubleArrayElements(result, nullptr);
+    jfloat *buffer = env->GetFloatArrayElements(result, nullptr);
 
     if (!buffer) {
         LOGE("AmbientLevel. buffer is null.");
@@ -47,7 +67,7 @@ Java_com_expamedia_roomequalizer_native_NativeEqualizer_nativeAmbientLevel(
     else {
         jsize length = env->GetArrayLength(result);
         ret = AmbientLevel(FS, buffer, length);
-        env->ReleaseDoubleArrayElements(result, buffer, 0);
+        env->ReleaseFloatArrayElements(result, buffer, 0);
 
         LOGD("AmbientLevel. result size:%d ret:%d", length, ret);
     }
@@ -60,22 +80,22 @@ JNIEXPORT jint JNICALL
 Java_com_expamedia_roomequalizer_native_NativeEqualizer_nativeCalculatePEQ(
         JNIEnv *env,
         jobject thiz,
-        jdouble FS,
+        jfloat FS,
         jint ESS_LENGTH,
         jint N_PEQ,
-        jdouble F_MIN,
-        jdouble F_MAX,
-        jdouble G_MAX,
-        jdouble F_HPF,
-        jdoubleArray chirp,
-        jdoubleArray result,
-        jdoubleArray IIRcoef
+        jfloat F_MIN,
+        jfloat F_MAX,
+        jfloat G_MAX,
+        jfloat F_HPF,
+        jfloatArray chirp,
+        jfloatArray result,
+        jfloatArray IIRcoef
 ) {
     jint ret = 1;
 
-    jdouble *chirpBuffer = env->GetDoubleArrayElements(chirp, nullptr);
-    jdouble *resultBuffer = env->GetDoubleArrayElements(result, nullptr);
-    jdouble *IIRcoefBuffer = env->GetDoubleArrayElements(IIRcoef, nullptr);
+    jfloat *chirpBuffer = env->GetFloatArrayElements(chirp, nullptr);
+    jfloat *resultBuffer = env->GetFloatArrayElements(result, nullptr);
+    jfloat *IIRcoefBuffer = env->GetFloatArrayElements(IIRcoef, nullptr);
 
     if (!chirpBuffer) {
         LOGE("CalculatePEQ. chirpBuffer is null.");
@@ -107,13 +127,13 @@ Java_com_expamedia_roomequalizer_native_NativeEqualizer_nativeCalculatePEQ(
     }
 
     if(chirpBuffer) {
-        env->ReleaseDoubleArrayElements(chirp, chirpBuffer, 0);
+        env->ReleaseFloatArrayElements(chirp, chirpBuffer, 0);
     }
     if(resultBuffer) {
-        env->ReleaseDoubleArrayElements(result, resultBuffer, 0);
+        env->ReleaseFloatArrayElements(result, resultBuffer, 0);
     }
     if(IIRcoefBuffer) {
-        env->ReleaseDoubleArrayElements(IIRcoef, IIRcoefBuffer, 0);
+        env->ReleaseFloatArrayElements(IIRcoef, IIRcoefBuffer, 0);
     }
     return ret;
 }

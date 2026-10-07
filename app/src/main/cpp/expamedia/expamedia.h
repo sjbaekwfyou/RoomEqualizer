@@ -7,9 +7,11 @@
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
-void GenerateESS(double FS, int ESS_LENGTH, double* chirp);
+void SetExternalFilesDir(const char* externalFilesDir);
 
-int AmbientLevel(double FS, double* result, size_t resultLength);
+void GenerateESS(float FS, int ESS_LENGTH, float* chirp);
 
-int CalculatePEQ(double FS, int ESS_LENGTH, int N_PEQ, double F_MIN, double F_MAX, double G_MAX, double F_HPF, double* chirp, double* result, double* IIRcoef);
+int AmbientLevel(float FS, float* result, size_t resultLength);
+
+int CalculatePEQ(float FS, int ESS_LENGTH, int N_PEQ, float F_MIN, float F_MAX, float G_MAX, float F_HPF, float* chirp, float* result, float* IIRcoef);
 

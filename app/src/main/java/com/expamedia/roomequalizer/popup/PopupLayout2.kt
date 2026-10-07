@@ -68,138 +68,152 @@ class PopupLayout2(private val context: Context, private val audioDeviceManager:
         binding.btnButtonID.text = context.getString(this.messageType.btMessage)
     }
 
-    private fun readRecordBuffer(floatBuffer: FloatArray, listener: (DoubleArray) -> Unit) {
+    private fun readRecordBuffer(floatBuffer: FloatArray, listener: (FloatArray) -> Unit) {
         (context as? LifecycleOwner)?.lifecycleScope?.launch(Dispatchers.IO) {
             val recordedFloatBuffer: FloatArray = audioDeviceManager.playAndRecord(floatBuffer)
-            val recordedDoubleBuffer = DoubleArray(recordedFloatBuffer.size) { i -> recordedFloatBuffer[i].toDouble() }
 
             withContext(Dispatchers.Main) {
-                listener.invoke(recordedDoubleBuffer)
+                listener.invoke(recordedFloatBuffer)
             }
         }
     }
 
-    fun showMessage1(listenerOK: () -> Unit, listenerNG: () -> Unit) {
+    fun showMessage1(listenerOK: () -> Boolean, listenerNG: () -> Boolean) {
         if (!dialog.isShowing) {
             dialog.show()
+        }
 
-            setMessage(MessageType.Message1)
+        setMessage(MessageType.Message1)
 
-            (context as? LifecycleOwner)?.lifecycleScope?.launch(Dispatchers.IO) {
-                val ambientRecoding = FloatArray(24000)
+        (context as? LifecycleOwner)?.lifecycleScope?.launch(Dispatchers.IO) {
+            val ambientRecoding = FloatArray(24000)
 
-                readRecordBuffer(ambientRecoding) { recordedDoubleBuffer ->
-                    var level = nativeEqualizer.ambientLevel(recordedDoubleBuffer)
-                    when (level) {
-                        0 -> {     //OK
-                            listenerOK.invoke()
-                            dismiss()
+            readRecordBuffer(ambientRecoding) { recordedDoubleBuffer ->
+                var level = nativeEqualizer.ambientLevel(recordedDoubleBuffer)
+                when (level) {
+                    0 -> {     //OK
+                        if (listenerOK.invoke()) {
+                            return@readRecordBuffer
                         }
-                        else -> {     //NG
-                            listenerNG.invoke()
-                            dismiss()
+                        dismiss()
+                    }
+                    else -> {     //NG
+                        if (listenerNG.invoke()) {
+                            return@readRecordBuffer
                         }
+                        dismiss()
                     }
                 }
             }
         }
     }
 
-    fun showMessage2(chirp: DoubleArray, listener: (result: DoubleArray) -> Unit) {
+    fun showMessage2(chirp: FloatArray, listener: (result: FloatArray) -> Boolean) {
         if (!dialog.isShowing) {
             dialog.show()
+        }
 
-            var isCanceled = false
-            binding.btnButtonID.setOnClickListener {
-                isCanceled = true
-                dismiss()
+        var isCanceled = false
+        binding.btnButtonID.setOnClickListener {
+            isCanceled = true
+            dismiss()
+        }
+
+        setMessage(MessageType.Message2)
+
+        readRecordBuffer(chirp) { result ->
+            if(!isCanceled) {
+                if (listener.invoke(result)) {
+                    return@readRecordBuffer
+                }
             }
+            dismiss()
+        }
+    }
 
-            setMessage(MessageType.Message2)
+    fun showMessage3(chirp: FloatArray, result: FloatArray, listenerCanceled: () -> Unit, listener: (value: Int, IIRcoef: FloatArray) -> Boolean) {
+        if (!dialog.isShowing) {
+            dialog.show()
+        }
 
-            val floatBuffer = FloatArray(chirp.size) { i -> chirp[i].toFloat() }
-            readRecordBuffer(floatBuffer) { result ->
-                if(!isCanceled) {
-                    listener.invoke(result)
+        binding.btnButtonID.setOnClickListener {
+            listenerCanceled.invoke()
+            dismiss()
+        }
+
+        (context as? LifecycleOwner)?.lifecycleScope?.launch(Dispatchers.IO) {
+            val IIRcoef = FloatArray(chirp.size)
+            val value = nativeEqualizer.calculatePEQ(chirp, result, IIRcoef)
+
+            withContext(Dispatchers.Main) {
+                if (listener.invoke(value, IIRcoef)) {
+                    return@withContext
                 }
                 dismiss()
             }
         }
+
+        setMessage(MessageType.Message3)
     }
 
-    fun showMessage3(chirp: DoubleArray, result: DoubleArray, listenerCanceled: () -> Unit, listener: (value: Int, IIRcoef: DoubleArray) -> Unit) {
+    fun showMessage4(listener: () -> Boolean) {
         if (!dialog.isShowing) {
             dialog.show()
-
-            binding.btnButtonID.setOnClickListener {
-                listenerCanceled.invoke()
-                dismiss()
-            }
-
-            (context as? LifecycleOwner)?.lifecycleScope?.launch(Dispatchers.IO) {
-                val IIRcoef = DoubleArray(chirp.size)
-                val value = nativeEqualizer.calculatePEQ(chirp, result, IIRcoef)
-
-                withContext(Dispatchers.Main) {
-                    listener.invoke(value, IIRcoef)
-                    dismiss()
-                }
-            }
-
-            setMessage(MessageType.Message3)
         }
+
+        binding.btnButtonID.setOnClickListener {
+            if (listener.invoke()) {
+                return@setOnClickListener
+            }
+            dismiss()
+        }
+
+        setMessage(MessageType.Message4)
     }
 
-    fun showMessage4(listener: () -> Unit) {
+    fun showMessage5(listener: () -> Boolean) {
         if (!dialog.isShowing) {
             dialog.show()
-
-            binding.btnButtonID.setOnClickListener {
-                listener.invoke()
-                dismiss()
-            }
-
-            setMessage(MessageType.Message4)
         }
+
+        binding.btnButtonID.setOnClickListener {
+            if (listener.invoke()) {
+                return@setOnClickListener
+            }
+            dismiss()
+        }
+
+        setMessage(MessageType.Message5)
     }
 
-    fun showMessage5(listener: () -> Unit) {
+    fun showMessage6(listener: () -> Boolean) {
         if (!dialog.isShowing) {
             dialog.show()
-
-            binding.btnButtonID.setOnClickListener {
-                listener.invoke()
-                dismiss()
-            }
-
-            setMessage(MessageType.Message5)
         }
+
+        binding.btnButtonID.setOnClickListener {
+            if (listener.invoke()) {
+                return@setOnClickListener
+            }
+            dismiss()
+        }
+
+        setMessage(MessageType.Message6)
     }
 
-    fun showMessage6(listener: () -> Unit) {
+    fun showMessage7(listener: () -> Boolean) {
         if (!dialog.isShowing) {
             dialog.show()
-
-            binding.btnButtonID.setOnClickListener {
-                listener.invoke()
-                dismiss()
-            }
-
-            setMessage(MessageType.Message6)
         }
-    }
 
-    fun showMessage7(listener: () -> Unit) {
-        if (!dialog.isShowing) {
-            dialog.show()
-
-            binding.btnButtonID.setOnClickListener {
-                listener.invoke()
-                dismiss()
+        binding.btnButtonID.setOnClickListener {
+            if (listener.invoke()) {
+                return@setOnClickListener
             }
-
-            setMessage(MessageType.Message7)
+            dismiss()
         }
+
+        setMessage(MessageType.Message7)
     }
 
     fun dismiss() {

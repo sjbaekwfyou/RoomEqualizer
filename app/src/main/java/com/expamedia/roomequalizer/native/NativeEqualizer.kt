@@ -1,41 +1,35 @@
 package com.expamedia.roomequalizer.native
 
-class NativeEqualizer {
-    /**
-     * A native method that is implemented by the 'roomequalizer' native library,
-     * which is packaged with this application.
-     */
-    external fun nativeGenerateESS(FS: Double, ESS_LENGTH: Int, chirp: DoubleArray)
-    external fun nativeAmbientLevel(FS: Double, result: DoubleArray): Int
-    external fun nativeCalculatePEQ(FS: Double, ESS_LENGTH: Int, N_PEQ: Int, F_MIN: Double, F_MAX: Double, G_MAX: Double, F_HPF: Double, chirp: DoubleArray, result: DoubleArray, IIRcoef: DoubleArray): Int;
+import android.content.Context
+import androidx.appcompat.app.AppCompatActivity
 
+class NativeEqualizer(val context: Context, val chirp: FloatArray) {
     companion object {
-        private const val FS: Double = 48000.0
+        public const val FS: Float = 48000.0f
         public const val ESS_LENGTH: Int = 72000
-        private const val N_PEQ: Int = 12
-        private const val F_MIN: Double = 50.0
-        private const val F_MAX: Double = 20000.0
-        private const val F_HPF: Double = 40.0
-        private const val G_MAX: Double = 12.0
-
-        init {
-            System.loadLibrary("roomequalizer")
-        }
+        public const val N_PEQ: Int = 12
+        public const val F_MIN: Float = 50.0f
+        public const val F_MAX: Float = 20000.0f
+        public const val F_HPF: Float = 40.0f
+        public const val G_MAX: Float = 12.0f
     }
 
-    public final fun getEssLength(): Int {
-        return ESS_LENGTH
-    }
+    external fun nativeInitialize(externalFilesDir: String?)
+    external fun nativeGenerateESS(FS: Float, ESS_LENGTH: Int, chirp: FloatArray)
+    external fun nativeAmbientLevel(FS: Float, result: FloatArray): Int
+    external fun nativeCalculatePEQ(FS: Float, ESS_LENGTH: Int, N_PEQ: Int, F_MIN: Float, F_MAX: Float, G_MAX: Float, F_HPF: Float, chirp: FloatArray, result: FloatArray, IIRcoef: FloatArray): Int;
 
-    public fun generateESS(chirp: DoubleArray) {
+    init {
+        System.loadLibrary("roomequalizer")
+        nativeInitialize((context as AppCompatActivity).getExternalFilesDir(null)?.absolutePath)
         nativeGenerateESS(FS, ESS_LENGTH, chirp)
     }
 
-    public fun ambientLevel(result: DoubleArray): Int {
+    public fun ambientLevel(result: FloatArray): Int {
         return nativeAmbientLevel(FS, result)
     }
 
-    public fun calculatePEQ(chirp: DoubleArray, result: DoubleArray, IIRcoef: DoubleArray): Int {
+    public fun calculatePEQ(chirp: FloatArray, result: FloatArray, IIRcoef: FloatArray): Int {
         return nativeCalculatePEQ(FS, ESS_LENGTH, N_PEQ, F_MIN, F_MAX, G_MAX, F_HPF, chirp, result, IIRcoef)
     }
 }

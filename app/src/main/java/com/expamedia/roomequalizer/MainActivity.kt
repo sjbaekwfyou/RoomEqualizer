@@ -1,17 +1,16 @@
 package com.expamedia.roomequalizer
 
 import android.Manifest
-import android.content.Intent
+import android.content.BroadcastReceiver
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
-import android.provider.Settings
+import android.view.WindowManager
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
 import com.expamedia.roomequalizer.data.BluetoothDeviceInfo
@@ -22,23 +21,27 @@ import com.expamedia.roomequalizer.popup.PopupLayout1
 import com.expamedia.roomequalizer.popup.PopupLayout2
 import com.expamedia.roomequalizer.popup.PopupLayout3
 import com.expamedia.roomequalizer.popup.PopupLayoutBluetooth
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
-    private final val resultCodeAudio: Int = 1001
-    private final val resultCodeBluetooth: Int = 1002
-
     private lateinit var binding: ActivityMainBinding
+
+    private var discoveryReceiver: BroadcastReceiver? = null
+    private val discoveredDeviceList = mutableListOf<BluetoothDeviceInfo>()
     private lateinit var bluetoothDeviceManager: BluetoothDeviceManager
+
     private lateinit var audioDeviceManager: AudioDeviceManager
 
     private lateinit var nativeEqualizer: NativeEqualizer
-    private lateinit var chirp: DoubleArray
+    private lateinit var chirp: FloatArray
 
     private lateinit var popupLayout1: PopupLayout1
     private lateinit var popupLayout2: PopupLayout2
     private lateinit var popupLayout3: PopupLayout3
+
+    private var popupLayoutBluetooth: PopupLayoutBluetooth? = null
 
     private var receiveJob: Job? = null // 데이터 수신 루프 관리용 코루틴 Job
 
@@ -46,16 +49,16 @@ class MainActivity : AppCompatActivity() {
         installSplashScreen()
         super.onCreate(savedInstanceState)
 
-        checkPermissionsAudio()
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        checkPermissions()
 
         bluetoothDeviceManager = BluetoothDeviceManager(this)
 
         audioDeviceManager = AudioDeviceManager(this)
         audioDeviceManager.initAudioDevices()
 
-        nativeEqualizer = NativeEqualizer()
-        chirp = DoubleArray(nativeEqualizer.getEssLength())
-        nativeEqualizer.generateESS(chirp)
+        chirp = FloatArray(NativeEqualizer.ESS_LENGTH)
+        nativeEqualizer = NativeEqualizer(this, chirp)
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -65,7 +68,7 @@ class MainActivity : AppCompatActivity() {
         popupLayout3 = PopupLayout3(this)
 
         binding.btnBLEConnection.setOnClickListener {
-            checkPermissionsBluetooth(resultCodeBluetooth)
+            showPopupLayoutBluetooth()
         }
 
         binding.btnPlayMode.setOnClickListener {
@@ -88,7 +91,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.btnMeasurementMode.setOnClickListener {
-            checkPermissionsBluetooth(resultCodeAudio)
+            showPopupLayoutAudio()
         }
 
         binding.btnExit.setOnClickListener {
@@ -99,43 +102,29 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
 
-        bluetoothDeviceManager.disconnectAudioDevice()
+        discoveryReceiver?.let {
+            try {
+                unregisterReceiver(it)
+            } catch (e: IllegalArgumentException) {
+                // 이미 해제되었거나 등록되지 않은 경우의 예외 처리
+                e.printStackTrace()
+            }
+            discoveryReceiver = null
+        }
+
         bluetoothDeviceManager.disconnectGeneralDevice()
         audioDeviceManager.releaseAudioDevices()
     }
 
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-
-        if (requestCode == resultCodeAudio || requestCode == resultCodeBluetooth) {
-            var isAllGranted = true
-
-            // 요청한 모든 권한이 승인되었는지 확인
-            for (result in grantResults) {
-                if (result != PackageManager.PERMISSION_GRANTED) {
-                    isAllGranted = false
-                    break
-                }
-            }
-
-            if (isAllGranted) {
-                if(requestCode == resultCodeAudio) {
-                    showPopupLayoutAudio()
-                }
-                else {
-                    showPopupLayoutBluetooth()
-                }
-            } else {
-                // 권한이 거부되었을 때 예외 처리
-                Toast.makeText(this, "Unable to find devices because Bluetooth permission was denied.", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
-    private fun checkPermissionsAudio() {
+    private fun checkPermissions() {
         val permissions = mutableListOf(Manifest.permission.RECORD_AUDIO)
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            permissions.add(Manifest.permission.BLUETOOTH_CONNECT)
+            permissions.add(Manifest.permission.BLUETOOTH_SCAN);
+            permissions.add(Manifest.permission.BLUETOOTH_CONNECT);
+        } else {
+            permissions.add(Manifest.permission.ACCESS_FINE_LOCATION);
+            permissions.add(Manifest.permission.ACCESS_COARSE_LOCATION);
         }
 
         val hasAllPermissions = permissions.all {
@@ -143,19 +132,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         if (!hasAllPermissions) {
-            ActivityCompat.requestPermissions(this, permissions.toTypedArray(), resultCodeBluetooth)
-        }
-    }
-
-    private fun checkPermissionsBluetooth(resultCode: Int) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_SCAN),
-                resultCode
-            )
-        } else {
-            showPopupLayoutBluetooth()
+            ActivityCompat.requestPermissions(this, permissions.toTypedArray(), 1001)
         }
     }
 
@@ -165,176 +142,155 @@ class MainActivity : AppCompatActivity() {
                 popupLayout1.show {
                     startMeasurement()
                 }
+                false
             },
             listenerNG = {
-                Handler(Looper.getMainLooper()).post {
-                    popupLayout2.showMessage4 {}
+                popupLayout2.showMessage4 {
+                    false
                 }
+                true
             }
         )
-
-        /*val pairedDevices: List<BluetoothDeviceInfo> = bluetoothDeviceManager.getAudioPairedDevices()
-        if (pairedDevices.isEmpty()) {
-            AlertDialog.Builder(this)
-                .setTitle(getString(R.string.title_no_audio))
-                .setMessage(getString(R.string.alert_no_audio))
-                .setPositiveButton(getString(R.string.button_no_bluetooth)) { dialog, _ ->
-                    // 안드로이드 블루투스 설정 화면으로 이동
-                    val intent = Intent(Settings.ACTION_BLUETOOTH_SETTINGS)
-                    startActivity(intent)
-                    dialog.dismiss()
-                }
-                .setNegativeButton(getString(R.string.cancel)) { dialog, _ ->
-                    dialog.dismiss()
-                }
-                .setCancelable(true)
-                .show()
-            return
-        }
-
-        PopupLayoutBluetooth(this, "Speaker Devices", pairedDevices) { selectedDevice ->
-            val deviceName = selectedDevice.name ?: "알 수 없는 기기"
-            //Toast.makeText(this, "Connecting to $deviceName", Toast.LENGTH_SHORT).show()
-
-            lifecycleScope.launch {
-                val isConnected = bluetoothDeviceManager.connectGeneralDevice(selectedDevice)
-                if (isConnected) {
-                    //Toast.makeText(this@MainActivity, "Connected.", Toast.LENGTH_SHORT).show()
-
-                    popupLayout2.showMessage1(
-                        listenerOK = {
-                            popupLayout1.show {
-                                startMeasurement()
-                            }
-                        },
-                        listenerNG = {
-                            Handler(Looper.getMainLooper()).post {
-                                popupLayout2.showMessage4 {}
-                            }
-                        }
-                    )
-                } else {
-                    Toast.makeText(this@MainActivity, "Socket connection failed.", Toast.LENGTH_SHORT).show()
-                }
-            }
-        }.show()*/
     }
 
     private fun showPopupLayoutBluetooth() {
-        val pairedDevices: List<BluetoothDeviceInfo> = bluetoothDeviceManager.getNonAudioPairedDevices()
-        if (pairedDevices.isEmpty()) {
-            AlertDialog.Builder(this)
-                .setTitle(getString(R.string.title_no_bluetooth))
-                .setMessage(getString(R.string.alert_no_bluetooth))
-                .setPositiveButton(getString(R.string.button_no_bluetooth)) { dialog, _ ->
-                    // 안드로이드 블루투스 설정 화면으로 이동
-                    val intent = Intent(Settings.ACTION_BLUETOOTH_SETTINGS)
-                    startActivity(intent)
-                    dialog.dismiss()
-                }
-                .setNegativeButton(getString(R.string.cancel)) { dialog, _ ->
-                    dialog.dismiss()
-                }
-                .setCancelable(true)
-                .show()
-            return
+        popupLayoutBluetooth?.dismiss()
+
+        val isScanPermissionGranted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            // Android 12 이상: BLUETOOTH_SCAN 권한 검사
+            ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED
+        } else {
+            // Android 11 이하: ACCESS_FINE_LOCATION 위치 권한 검사
+            ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
         }
 
-        PopupLayoutBluetooth(this, "BLE Devices", pairedDevices) { selectedDevice ->
-            val deviceName = selectedDevice.name ?: "알 수 없는 기기"
-            Toast.makeText(this, "Connecting to $deviceName", Toast.LENGTH_SHORT).show()
+        if (isScanPermissionGranted) {
+            discoveredDeviceList.clear()
 
-            lifecycleScope.launch {
-                val isConnected = bluetoothDeviceManager.connectGeneralDevice(selectedDevice)
-                if (isConnected) {
-                    bluetoothDeviceManager.setupStreams()
-                    Toast.makeText(this@MainActivity, "Connected! Awaiting data stream...", Toast.LENGTH_SHORT).show()
+            bluetoothDeviceManager.startDiscovery(
+                onDeviceFound = { device ->
+                    // [콜백 1] 새로운 기기를 발견할 때마다 매번 호출됨
+                    val deviceName = device.name ?: getString(R.string.unknown_device)
+                    val deviceAddress = device.address
 
-                    receiveJob?.cancel() // 기존 수신 작업이 있다면 취소
-                    receiveJob = lifecycleScope.launch {
-                        bluetoothDeviceManager.startListening { receivedData ->
-                            Toast.makeText(this@MainActivity, "\n[수신]: $receivedData", Toast.LENGTH_SHORT).show()
+                    // 중복 추가 방지
+                    if (discoveredDeviceList.none { it.address == deviceAddress }) {
+                        val deviceInfo = BluetoothDeviceInfo(
+                            name = deviceName,
+                            address = deviceAddress,
+                            originalDevice = device
+                        )
+                        discoveredDeviceList.add(deviceInfo)
+
+                        runOnUiThread {
+                            popupLayoutBluetooth?.addDevice(deviceInfo)
                         }
                     }
-                } else {
-                    AlertDialog.Builder(this@MainActivity)
-                        .setTitle(getString(R.string.fail))
-                        .setMessage(getString(R.string.alert_bluetooth_connection_failed))
-                        .setPositiveButton(getString(R.string.ok)) { dialog, _ ->
-                            dialog.dismiss()
-                        }
-                        .setCancelable(true)
-                        .show()
+                },
+                receiverOut = { receiver ->
+                    // [콜백 2] 생성된 BroadcastReceiver를 인자로 받아 Activity 변수에 저장
+                    discoveryReceiver = receiver
+                }
+            )
+        }
+
+        popupLayoutBluetooth = PopupLayoutBluetooth(this, getString(R.string.ble_devices))
+
+        val pairedDevices: List<BluetoothDeviceInfo> = bluetoothDeviceManager.getPairedBluetoothDevices()
+        popupLayoutBluetooth?.show(pairedDevices) { selectedDevice ->
+            val deviceName = selectedDevice.name ?: getString(R.string.unknown_device)
+            Toast.makeText(this, "Connecting to $deviceName", Toast.LENGTH_SHORT).show()
+
+            receiveJob?.cancel() // 기존 수신 작업이 있다면 취소
+            receiveJob = lifecycleScope.launch(Dispatchers.IO) {
+                val isConnected = bluetoothDeviceManager.connectGeneralDevice(selectedDevice)
+                if (!isConnected) {
+                    lifecycleScope.launch(Dispatchers.Main) {
+                        AlertDialog.Builder(this@MainActivity)
+                            .setTitle(getString(R.string.fail))
+                            .setMessage(getString(R.string.alert_bluetooth_connection_failed))
+                            .setPositiveButton(getString(R.string.ok)) { dialog, _ ->
+                                dialog.dismiss()
+                            }
+                            .setCancelable(true)
+                            .show()
+                    }
+                    return@launch
+                }
+
+                Toast.makeText(this@MainActivity, "Connected! Awaiting data stream...", Toast.LENGTH_SHORT).show()
+                bluetoothDeviceManager.setupStreams()
+                bluetoothDeviceManager.startListening { receivedData ->
+                    lifecycleScope.launch(Dispatchers.Main) {
+                        Toast.makeText(this@MainActivity, "\n[수신]: ${receivedData.size}", Toast.LENGTH_SHORT).show()
+                    }
                 }
             }
-        }.show()
+        }
     }
 
     private fun startMeasurement() {
-        fun completeCalculatePEQ(chirp: DoubleArray, result: DoubleArray, IIRcoef: DoubleArray, value: Int) {
-            Handler(Looper.getMainLooper()).post {
-                when (value) {
-                    0 -> {
-                        popupLayout3.show { eqUser ->
-                            when (eqUser) {
-                                PopupLayout3.EqUser.Cancel -> {
-                                    Toast.makeText(this, "CANCEL", Toast.LENGTH_SHORT).show()
-                                }
-
-                                PopupLayout3.EqUser.User1 -> {
-                                    Toast.makeText(this, "User1", Toast.LENGTH_SHORT).show()
-                                }
-
-                                PopupLayout3.EqUser.User2 -> {
-                                    Toast.makeText(this, "User2", Toast.LENGTH_SHORT).show()
-                                }
+        fun completeCalculatePEQ(chirp: FloatArray, result: FloatArray, IIRcoef: FloatArray, value: Int): Boolean {
+            when (value) {
+                0 -> {
+                    popupLayout3.show { eqUser ->
+                        when (eqUser) {
+                            PopupLayout3.EqUser.Cancel -> {
+                                Toast.makeText(this, "CANCEL", Toast.LENGTH_SHORT).show()
                             }
-                            popupLayout3.dismiss()
-                        }
-                    }
-                    1 -> {
-                        popupLayout2.showMessage5 {
-                            Handler(Looper.getMainLooper()).post {
-                                startMeasurement()
+                            PopupLayout3.EqUser.User1 -> {
+                                binding.radioEQUser1.isChecked = true
+                            }
+                            PopupLayout3.EqUser.User2 -> {
+                                binding.radioEQUser2.isChecked = true
                             }
                         }
+                        false
                     }
-                    2 -> {
-                        popupLayout2.showMessage6 {
-                            Handler(Looper.getMainLooper()).post {
-                                startMeasurement()
-                            }
-                        }
+                    return false
+                }
+                1 -> {
+                    popupLayout2.showMessage5 {
+                        startMeasurement()
+                        true
                     }
-                    3 -> {
-                        popupLayout2.showMessage7 {
-                            Handler(Looper.getMainLooper()).post {
-                                startMeasurement()
-                            }
-                        }
+                    return true
+                }
+                2 -> {
+                    popupLayout2.showMessage6 {
+                        startMeasurement()
+                        true
                     }
+                    return true
+                }
+                3 -> {
+                    popupLayout2.showMessage7 {
+                        startMeasurement()
+                        true
+                    }
+                    return true
                 }
             }
+            return false
         }
 
-        fun calculatePEQ(result: DoubleArray) {
+        fun calculatePEQ(result: FloatArray) {
             var isCanceled = false
             popupLayout2.showMessage3(chirp, result,
                 listenerCanceled = {
                     isCanceled = true
                 },
                 listener = { value, IIRcoef ->
-                    if (isCanceled) return@showMessage3
+                    if (isCanceled) return@showMessage3 false
 
-                    completeCalculatePEQ(chirp, result, IIRcoef, value)
+                    return@showMessage3 completeCalculatePEQ(chirp, result, IIRcoef, value)
                 }
             )
         }
 
         popupLayout2.showMessage2(chirp) { result ->
-            Handler(Looper.getMainLooper()).post {
-                calculatePEQ(result)
-            }
+            calculatePEQ(result)
+            return@showMessage2 true
         }
     }
 }
