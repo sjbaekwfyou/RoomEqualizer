@@ -29,26 +29,32 @@ class BleApi(val context: Context, val bluetoothDeviceManager: BluetoothDeviceMa
             parseCmdDatas.subList(0, 4).clear()
 
             Log.d(TAG, "parseCmd. extracted: ${extracted.toList()}")
+
             if (extracted[0] == 0xed.toByte()) {
                 if (extracted[1] == 0xa0.toByte()) {
                     if (extracted[2] == 0x01.toByte() && extracted[3] == 0x71.toByte()) {
                         Log.d(TAG, "parseCmd. ModeType.PLAY_MODE")
+
                         listenerMode(ModeType.PLAY_MODE)
                     }
                     else if (extracted[2] == 0x02.toByte() && extracted[3] == 0x70.toByte()) {
                         Log.d(TAG, "parseCmd. ModeType.MEASUREMENT_MODE")
+
                         listenerMode(ModeType.MEASUREMENT_MODE)
                     }
                 }
                 else if (extracted[1] == 0xb0.toByte()) {
                     if (extracted[2] == 0x01.toByte() && extracted[3] == 0x61.toByte()) {
                         Log.d(TAG, "parseCmd. EqModeType.EQ_MODE_DEFAULT")
+
                         listenerEqMode(EqModeType.EQ_MODE_DEFAULT)
                     } else if (extracted[2] == 0x02.toByte() && extracted[3] == 0x60.toByte()) {
                         Log.d(TAG, "parseCmd. EqModeType.EQ_MODE_USER1")
+
                         listenerEqMode(EqModeType.EQ_MODE_USER1)
                     } else if (extracted[2] == 0x03.toByte() && extracted[3] == 0x5f.toByte()) {
                         Log.d(TAG, "parseCmd. EqModeType.EQ_MODE_USER2")
+
                         listenerEqMode(EqModeType.EQ_MODE_USER2)
                     } else {
                         if (extracted[3] == 0x5d.toByte()) {

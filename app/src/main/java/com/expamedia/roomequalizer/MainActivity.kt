@@ -247,7 +247,6 @@ class MainActivity : AppCompatActivity() {
                             Toast.makeText(this@MainActivity, "Mode set to $modeType", Toast.LENGTH_SHORT).show()
                         }, listenerEqMode = { eqModeType ->
                             Toast.makeText(this@MainActivity, "EqMode set to $eqModeType", Toast.LENGTH_SHORT).show()
-
                         }, listenerGetEqMode = { eqModeType ->
                             when(eqModeType) {
                                 BleApi.EqModeType.EQ_MODE_DEFAULT -> binding.radioEQDefault.isChecked = true
