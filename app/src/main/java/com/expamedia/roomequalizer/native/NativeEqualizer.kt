@@ -1,4 +1,4 @@
-package com.expamedia.roomequalizer.api
+package com.expamedia.roomequalizer.native
 
 import android.content.Context
 import androidx.appcompat.app.AppCompatActivity

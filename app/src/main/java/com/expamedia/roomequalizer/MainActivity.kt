@@ -1,7 +1,6 @@
 package com.expamedia.roomequalizer
 
 import android.Manifest
-import android.content.BroadcastReceiver
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
@@ -12,11 +11,10 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
-import com.expamedia.roomequalizer.api.BleApi
 import com.expamedia.roomequalizer.data.BleDevice
 import com.expamedia.roomequalizer.databinding.ActivityMainBinding
 import com.expamedia.roomequalizer.device.BleDeviceManager
-import com.expamedia.roomequalizer.api.NativeEqualizer
+import com.expamedia.roomequalizer.native.NativeEqualizer
 import com.expamedia.roomequalizer.device.AudioDeviceManager
 import com.expamedia.roomequalizer.popup.PopupLayout1
 import com.expamedia.roomequalizer.popup.PopupLayout2
@@ -31,7 +29,6 @@ class MainActivity : AppCompatActivity() {
 
     private val discoveredDeviceList = mutableListOf<BleDevice>()
     private lateinit var bleDeviceManager: BleDeviceManager
-    private var bleApi: BleApi? = null
     private var selectedDevice: BleDevice? = null
 
     private lateinit var audioDeviceManager: AudioDeviceManager
@@ -71,7 +68,6 @@ class MainActivity : AppCompatActivity() {
 
         binding.btnBLEScan.setOnClickListener {
             bleDeviceManager.disconnect()
-            bleApi = null;
             selectedDevice = null;
 
             showPopupLayoutBluetooth()
@@ -91,7 +87,6 @@ class MainActivity : AppCompatActivity() {
             }
 
             bleDeviceManager.disconnect()
-            bleApi = null;
             selectedDevice = null;
         }
 
@@ -110,7 +105,6 @@ class MainActivity : AppCompatActivity() {
             }
 
             bleDeviceManager.disconnect()
-            bleApi = null;
 
             //selectedDevice = null;
             if (selectedDevice != null) {
@@ -120,20 +114,7 @@ class MainActivity : AppCompatActivity() {
 
         binding.btnPlayMode.setOnClickListener {
             lifecycleScope.launch {
-                if (!bleDeviceManager.isConnected()) {
-                    Toast.makeText(
-                        this@MainActivity,
-                        getString(R.string.toast_ble_not_connected),
-                        Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(
-                        this@MainActivity,
-                        getString(R.string.play_mode),
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-
-                bleApi?.modeSetting(BleApi.ModeType.PLAY_MODE)
+                bleDeviceManager.modeSetting(BleDeviceManager.ModeType.PLAY_MODE)
             }
         }
 
@@ -142,35 +123,17 @@ class MainActivity : AppCompatActivity() {
             when (checkedId) {
                 R.id.radioEQDefault -> {
                     lifecycleScope.launch {
-                        if (!bleDeviceManager.isConnected()) {
-                            Toast.makeText(
-                                this@MainActivity,
-                                getString(R.string.toast_ble_not_connected),
-                                Toast.LENGTH_SHORT).show()
-                        }
-                        bleApi?.setEQMode(BleApi.EqModeType.EQ_MODE_DEFAULT)
+                        bleDeviceManager.setEQMode(BleDeviceManager.EqModeType.EQ_MODE_DEFAULT)
                     }
                 }
                 R.id.radioEQUser1 -> {
                     lifecycleScope.launch {
-                        if (!bleDeviceManager.isConnected()) {
-                            Toast.makeText(
-                                this@MainActivity,
-                                getString(R.string.toast_ble_not_connected),
-                                Toast.LENGTH_SHORT).show()
-                        }
-                        bleApi?.setEQMode(BleApi.EqModeType.EQ_MODE_USER1)
+                        bleDeviceManager.setEQMode(BleDeviceManager.EqModeType.EQ_MODE_USER1)
                     }
                 }
                 R.id.radioEQUser2 -> {
                     lifecycleScope.launch {
-                        if (!bleDeviceManager.isConnected()) {
-                            Toast.makeText(
-                                this@MainActivity,
-                                getString(R.string.toast_ble_not_connected),
-                                Toast.LENGTH_SHORT).show()
-                        }
-                        bleApi?.setEQMode(BleApi.EqModeType.EQ_MODE_USER2)
+                        bleDeviceManager.setEQMode(BleDeviceManager.EqModeType.EQ_MODE_USER2)
                     }
                 }
             }
@@ -178,14 +141,7 @@ class MainActivity : AppCompatActivity() {
 
         binding.btnMeasurementMode.setOnClickListener {
             lifecycleScope.launch {
-                if (!bleDeviceManager.isConnected()) {
-                    Toast.makeText(
-                        this@MainActivity,
-                        getString(R.string.toast_ble_not_connected),
-                        Toast.LENGTH_SHORT).show()
-                }
-
-                bleApi?.modeSetting(BleApi.ModeType.MEASUREMENT_MODE)
+                bleDeviceManager.modeSetting(BleDeviceManager.ModeType.MEASUREMENT_MODE)
                 showPopupLayoutAudio()
             }
         }
@@ -267,13 +223,12 @@ class MainActivity : AppCompatActivity() {
                             Toast.LENGTH_SHORT
                         ).show()
 
-                        bleApi = BleApi(this@MainActivity, bleDeviceManager)
-                        bleApi?.getEQMode()
+                        bleDeviceManager.getEQMode()
                     }
                 }, receiveCallback = { receivedData ->
                     lifecycleScope.launch(Dispatchers.Main) {
                         //Toast.makeText(this@MainActivity, "\n[수신]: ${receivedData.size}", Toast.LENGTH_SHORT).show()
-                        bleApi?.parseCmd(receivedData, listenerMode = { modeType ->
+                        bleDeviceManager.parseCmd(receivedData, listenerMode = { modeType ->
                             Toast.makeText(
                                 this@MainActivity,
                                 "Mode set to $modeType",
@@ -287,13 +242,13 @@ class MainActivity : AppCompatActivity() {
                             ).show()
                         }, listenerGetEqMode = { eqModeType ->
                             when (eqModeType) {
-                                BleApi.EqModeType.EQ_MODE_DEFAULT -> binding.radioEQDefault.isChecked =
+                                BleDeviceManager.EqModeType.EQ_MODE_DEFAULT -> binding.radioEQDefault.isChecked =
                                     true
 
-                                BleApi.EqModeType.EQ_MODE_USER1 -> binding.radioEQUser1.isChecked =
+                                BleDeviceManager.EqModeType.EQ_MODE_USER1 -> binding.radioEQUser1.isChecked =
                                     true
 
-                                BleApi.EqModeType.EQ_MODE_USER2 -> binding.radioEQUser2.isChecked =
+                                BleDeviceManager.EqModeType.EQ_MODE_USER2 -> binding.radioEQUser2.isChecked =
                                     true
                             }
                         })
