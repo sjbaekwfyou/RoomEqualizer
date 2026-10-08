@@ -138,20 +138,32 @@ class AudioDeviceManager(private val context: Context) {
                 recordBufferSize
             )
 
-            // 💡 2. Android 6.0(API 23) 이상: 내장 마이크(TYPE_BUILTIN_MIC) 명시적 고정
+            // 💡 2. 마이크 선택: USB 마이크가 연결되어 있으면 우선 사용, 없으면 내장 마이크(TYPE_BUILTIN_MIC) 사용
             try {
                 val inputDevices = audioManager.getDevices(AudioManager.GET_DEVICES_INPUTS)
-                val builtinMic = inputDevices.firstOrNull { device ->
-                    device.type == AudioDeviceInfo.TYPE_BUILTIN_MIC
+
+                val usbMic = inputDevices.firstOrNull { device ->
+                    device.type == AudioDeviceInfo.TYPE_USB_DEVICE ||
+                            device.type == AudioDeviceInfo.TYPE_USB_ACCESSORY ||
+                            (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && device.type == AudioDeviceInfo.TYPE_USB_HEADSET)
                 }
-                builtinMic?.let {
-                    val isSuccess = audioRecord.setPreferredDevice(it)
-                    Log.d(TAG, "내장 마이크 고정 설정 결과: $isSuccess")
-                } ?: run {
-                    Log.w(TAG, "내장 마이크 장치를 찾지 못했습니다.")
+
+                if (usbMic != null) {
+                    val isSuccess = audioRecord.setPreferredDevice(usbMic)
+                    Log.d(TAG, "USB 마이크 고정 설정 결과: $isSuccess (${usbMic.productName})")
+                } else {
+                    val builtinMic = inputDevices.firstOrNull { device ->
+                        device.type == AudioDeviceInfo.TYPE_BUILTIN_MIC
+                    }
+                    builtinMic?.let {
+                        val isSuccess = audioRecord.setPreferredDevice(it)
+                        Log.d(TAG, "내장 마이크 고정 설정 결과: $isSuccess (${it.productName})")
+                    } ?: run {
+                        Log.w(TAG, "내장 마이크 장치를 찾지 못했습니다.")
+                    }
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to set preferred input device: ${e.message}", e)
+                Log.e(TAG, "마이크 입력 장치 설정 중 오류 발생: ${e.message}", e)
             }
 
             val minTrackBufferSize =
