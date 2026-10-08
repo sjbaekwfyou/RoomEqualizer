@@ -15,7 +15,13 @@
     <string name="fail">Fail</string>
     <string name="restart">RESTART</string>
     <string name="no_message"> </string>
-    <string name="ble_devices">BLE Devices</string>
+    <string name="title_ble_devices">BLE Devices</string>
+    <string name="btn_ble_scan">SCAN</string>
+    <string name="btn_ble_disconnect">DISCONNECT</string>
+    <string name="btn_ble_refresh">REFRESH</string>
+    <string name="toast_ble_disconnected">Disconnected</string>
+    <string name="toast_ble_not_connected">Not connected</string>
+    <string name="toast_ble_refreshed">Refreshed</string>
     <string name="unknown_device">Unknown device</string>
     <string name="noti_measurement">Measurement sequence for room calibration will be started. Please turn off any noise source like air conditioner, TV, radio etc. and keep quiet during the test signal plays.\n\nTap START button when you are ready.</string>
     <string name="noti_finished_measurement">Measurement finished. Please select location to save the result.</string>
@@ -31,6 +37,6 @@
     <string name="title_no_bluetooth">No Bluetooth Device Found</string>
     <string name="alert_no_bluetooth">No measurement Bluetooth device found.\nPlease pair a Bluetooth device first under [Settings] > [Bluetooth].</string>
     <string name="button_no_bluetooth">Open Settings</string>
-    <string name="alert_bluetooth_connection_failed">Socket connection failed.</string>">
+    <string name="alert_bluetooth_connection_failed">BLE connection failed.</string>">
     <string name="toast_bluetooth_connected">Connected! Awaiting data stream…</string>
 </resources>

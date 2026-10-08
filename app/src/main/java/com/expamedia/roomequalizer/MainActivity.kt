@@ -8,16 +8,16 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.WindowManager
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
 import com.expamedia.roomequalizer.api.BleApi
-import com.expamedia.roomequalizer.data.BluetoothDeviceInfo
+import com.expamedia.roomequalizer.data.BleDevice
 import com.expamedia.roomequalizer.databinding.ActivityMainBinding
-import com.expamedia.roomequalizer.device.BluetoothDeviceManager
+import com.expamedia.roomequalizer.device.BleDeviceManager
 import com.expamedia.roomequalizer.api.NativeEqualizer
+import com.expamedia.roomequalizer.device.AudioDeviceManager
 import com.expamedia.roomequalizer.popup.PopupLayout1
 import com.expamedia.roomequalizer.popup.PopupLayout2
 import com.expamedia.roomequalizer.popup.PopupLayout3
@@ -29,10 +29,10 @@ import kotlinx.coroutines.launch
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
 
-    private var discoveryReceiver: BroadcastReceiver? = null
-    private val discoveredDeviceList = mutableListOf<BluetoothDeviceInfo>()
-    private lateinit var bluetoothDeviceManager: BluetoothDeviceManager
+    private val discoveredDeviceList = mutableListOf<BleDevice>()
+    private lateinit var bleDeviceManager: BleDeviceManager
     private var bleApi: BleApi? = null
+    private var selectedDevice: BleDevice? = null
 
     private lateinit var audioDeviceManager: AudioDeviceManager
 
@@ -54,7 +54,7 @@ class MainActivity : AppCompatActivity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         checkPermissions()
 
-        bluetoothDeviceManager = BluetoothDeviceManager(this)
+        bleDeviceManager = BleDeviceManager(this)
 
         audioDeviceManager = AudioDeviceManager(this)
         audioDeviceManager.registerAudioDeviceCallback()
@@ -69,13 +69,70 @@ class MainActivity : AppCompatActivity() {
         popupLayout2 = PopupLayout2(this, audioDeviceManager, nativeEqualizer)
         popupLayout3 = PopupLayout3(this)
 
-        binding.btnBLEConnection.setOnClickListener {
+        binding.btnBLEScan.setOnClickListener {
+            bleDeviceManager.disconnect()
+            bleApi = null;
+            selectedDevice = null;
+
             showPopupLayoutBluetooth()
+        }
+
+        binding.btnBLEDisconnect.setOnClickListener {
+            if (!bleDeviceManager.isConnected()) {
+                Toast.makeText(
+                    this@MainActivity,
+                    getString(R.string.toast_ble_not_connected),
+                    Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(
+                    this@MainActivity,
+                    getString(R.string.toast_ble_disconnected),
+                    Toast.LENGTH_SHORT).show()
+            }
+
+            bleDeviceManager.disconnect()
+            bleApi = null;
+            selectedDevice = null;
+        }
+
+        binding.btnBLERefresh.setOnClickListener {
+            if (!bleDeviceManager.isConnected()) {
+                Toast.makeText(
+                    this@MainActivity,
+                    getString(R.string.toast_ble_not_connected),
+                    Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(
+                    this@MainActivity,
+                    getString(R.string.toast_ble_refreshed),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+
+            bleDeviceManager.disconnect()
+            bleApi = null;
+
+            //selectedDevice = null;
+            if (selectedDevice != null) {
+                connectBLE()
+            }
         }
 
         binding.btnPlayMode.setOnClickListener {
             lifecycleScope.launch {
-                Toast.makeText(this@MainActivity, getString(R.string.play_mode), Toast.LENGTH_SHORT).show()
+                if (!bleDeviceManager.isConnected()) {
+                    Toast.makeText(
+                        this@MainActivity,
+                        getString(R.string.toast_ble_not_connected),
+                        Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(
+                        this@MainActivity,
+                        getString(R.string.play_mode),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+
                 bleApi?.modeSetting(BleApi.ModeType.PLAY_MODE)
             }
         }
@@ -85,16 +142,34 @@ class MainActivity : AppCompatActivity() {
             when (checkedId) {
                 R.id.radioEQDefault -> {
                     lifecycleScope.launch {
+                        if (!bleDeviceManager.isConnected()) {
+                            Toast.makeText(
+                                this@MainActivity,
+                                getString(R.string.toast_ble_not_connected),
+                                Toast.LENGTH_SHORT).show()
+                        }
                         bleApi?.setEQMode(BleApi.EqModeType.EQ_MODE_DEFAULT)
                     }
                 }
                 R.id.radioEQUser1 -> {
                     lifecycleScope.launch {
+                        if (!bleDeviceManager.isConnected()) {
+                            Toast.makeText(
+                                this@MainActivity,
+                                getString(R.string.toast_ble_not_connected),
+                                Toast.LENGTH_SHORT).show()
+                        }
                         bleApi?.setEQMode(BleApi.EqModeType.EQ_MODE_USER1)
                     }
                 }
                 R.id.radioEQUser2 -> {
                     lifecycleScope.launch {
+                        if (!bleDeviceManager.isConnected()) {
+                            Toast.makeText(
+                                this@MainActivity,
+                                getString(R.string.toast_ble_not_connected),
+                                Toast.LENGTH_SHORT).show()
+                        }
                         bleApi?.setEQMode(BleApi.EqModeType.EQ_MODE_USER2)
                     }
                 }
@@ -103,6 +178,13 @@ class MainActivity : AppCompatActivity() {
 
         binding.btnMeasurementMode.setOnClickListener {
             lifecycleScope.launch {
+                if (!bleDeviceManager.isConnected()) {
+                    Toast.makeText(
+                        this@MainActivity,
+                        getString(R.string.toast_ble_not_connected),
+                        Toast.LENGTH_SHORT).show()
+                }
+
                 bleApi?.modeSetting(BleApi.ModeType.MEASUREMENT_MODE)
                 showPopupLayoutAudio()
             }
@@ -116,17 +198,7 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
 
-        discoveryReceiver?.let {
-            try {
-                unregisterReceiver(it)
-            } catch (e: IllegalArgumentException) {
-                // 이미 해제되었거나 등록되지 않은 경우의 예외 처리
-                e.printStackTrace()
-            }
-            discoveryReceiver = null
-        }
-
-        bluetoothDeviceManager.disconnectGeneralDevice()
+        bleDeviceManager.disconnect()
         audioDeviceManager.releaseAudioDevices()
     }
 
@@ -167,6 +239,70 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
+    private fun connectBLE() {
+        val deviceName = selectedDevice?.name ?: getString(R.string.unknown_device)
+        Toast.makeText(
+            this,
+            "Connecting to $deviceName",
+            Toast.LENGTH_SHORT).show()
+
+        receiveJob?.cancel() // 기존 수신 작업이 있다면 취소
+        receiveJob = lifecycleScope.launch(Dispatchers.IO) {
+            selectedDevice?.let { device ->
+                bleDeviceManager.connectToDevice(device, connectionResult = { isConnected ->
+                    lifecycleScope.launch(Dispatchers.Main) {
+                        if (!isConnected) {
+                            Toast.makeText(
+                                this@MainActivity,
+                                getString(R.string.alert_bluetooth_connection_failed),
+                                Toast.LENGTH_SHORT
+                            ).show()
+
+                            return@launch
+                        }
+
+                        Toast.makeText(
+                            this@MainActivity,
+                            getString(R.string.toast_bluetooth_connected),
+                            Toast.LENGTH_SHORT
+                        ).show()
+
+                        bleApi = BleApi(this@MainActivity, bleDeviceManager)
+                        bleApi?.getEQMode()
+                    }
+                }, receiveCallback = { receivedData ->
+                    lifecycleScope.launch(Dispatchers.Main) {
+                        //Toast.makeText(this@MainActivity, "\n[수신]: ${receivedData.size}", Toast.LENGTH_SHORT).show()
+                        bleApi?.parseCmd(receivedData, listenerMode = { modeType ->
+                            Toast.makeText(
+                                this@MainActivity,
+                                "Mode set to $modeType",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }, listenerEqMode = { eqModeType ->
+                            Toast.makeText(
+                                this@MainActivity,
+                                "EqMode set to $eqModeType",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }, listenerGetEqMode = { eqModeType ->
+                            when (eqModeType) {
+                                BleApi.EqModeType.EQ_MODE_DEFAULT -> binding.radioEQDefault.isChecked =
+                                    true
+
+                                BleApi.EqModeType.EQ_MODE_USER1 -> binding.radioEQUser1.isChecked =
+                                    true
+
+                                BleApi.EqModeType.EQ_MODE_USER2 -> binding.radioEQUser2.isChecked =
+                                    true
+                            }
+                        })
+                    }
+                })
+            }
+        }
+    }
+
     private fun showPopupLayoutBluetooth() {
         popupLayoutBluetooth?.dismiss()
 
@@ -181,80 +317,30 @@ class MainActivity : AppCompatActivity() {
         if (isScanPermissionGranted) {
             discoveredDeviceList.clear()
 
-            bluetoothDeviceManager.startDiscovery(
-                onDeviceFound = { device ->
-                    // [콜백 1] 새로운 기기를 발견할 때마다 매번 호출됨
-                    val deviceName = device.name ?: getString(R.string.unknown_device)
-                    val deviceAddress = device.address
+            bleDeviceManager.startScan { device ->
+                // [콜백 1] 새로운 기기를 발견할 때마다 매번 호출됨
+                val deviceName = device.name ?: getString(R.string.unknown_device)
+                val deviceAddress = device.address
 
-                    // 중복 추가 방지
-                    if (discoveredDeviceList.none { it.address == deviceAddress }) {
-                        val deviceInfo = BluetoothDeviceInfo(
-                            name = deviceName,
-                            address = deviceAddress,
-                            originalDevice = device
-                        )
-                        discoveredDeviceList.add(deviceInfo)
+                // 중복 추가 방지
+                if (discoveredDeviceList.none { it.address == deviceAddress }) {
+                    val deviceInfo = BleDevice(
+                        name = deviceName,
+                        address = deviceAddress
+                    )
+                    discoveredDeviceList.add(deviceInfo)
 
-                        runOnUiThread {
-                            popupLayoutBluetooth?.addDevice(deviceInfo)
-                        }
-                    }
-                },
-                receiverOut = { receiver ->
-                    discoveryReceiver = receiver
-                }
-            )
-        }
-
-        popupLayoutBluetooth = PopupLayoutBluetooth(this, getString(R.string.ble_devices))
-
-        val pairedDevices: List<BluetoothDeviceInfo> = bluetoothDeviceManager.getPairedBluetoothDevices()
-        popupLayoutBluetooth?.show(pairedDevices) { selectedDevice ->
-            val deviceName = selectedDevice.name ?: getString(R.string.unknown_device)
-            Toast.makeText(this, "Connecting to $deviceName", Toast.LENGTH_SHORT).show()
-
-            receiveJob?.cancel() // 기존 수신 작업이 있다면 취소
-            receiveJob = lifecycleScope.launch(Dispatchers.IO) {
-                val isConnected = bluetoothDeviceManager.connectGeneralDevice(selectedDevice)
-                if (!isConnected) {
-                    lifecycleScope.launch(Dispatchers.Main) {
-                        AlertDialog.Builder(this@MainActivity)
-                            .setTitle(getString(R.string.fail))
-                            .setMessage(getString(R.string.alert_bluetooth_connection_failed))
-                            .setPositiveButton(getString(R.string.ok)) { dialog, _ ->
-                                dialog.dismiss()
-                            }
-                            .setCancelable(true)
-                            .show()
-                    }
-                    return@launch
-                }
-
-                Toast.makeText(this@MainActivity, getString(R.string.toast_bluetooth_connected), Toast.LENGTH_SHORT).show()
-
-                bluetoothDeviceManager.setupStreams()
-
-                bleApi = BleApi(this@MainActivity, bluetoothDeviceManager)
-                bleApi?.getEQMode()
-
-                bluetoothDeviceManager.startListening { receivedData ->
-                    lifecycleScope.launch(Dispatchers.Main) {
-                        //Toast.makeText(this@MainActivity, "\n[수신]: ${receivedData.size}", Toast.LENGTH_SHORT).show()
-                        bleApi?.parseCmd(receivedData, listenerMode = { modeType ->
-                            Toast.makeText(this@MainActivity, "Mode set to $modeType", Toast.LENGTH_SHORT).show()
-                        }, listenerEqMode = { eqModeType ->
-                            Toast.makeText(this@MainActivity, "EqMode set to $eqModeType", Toast.LENGTH_SHORT).show()
-                        }, listenerGetEqMode = { eqModeType ->
-                            when(eqModeType) {
-                                BleApi.EqModeType.EQ_MODE_DEFAULT -> binding.radioEQDefault.isChecked = true
-                                BleApi.EqModeType.EQ_MODE_USER1 -> binding.radioEQUser1.isChecked = true
-                                BleApi.EqModeType.EQ_MODE_USER2 -> binding.radioEQUser2.isChecked = true
-                            }
-                        })
+                    runOnUiThread {
+                        popupLayoutBluetooth?.addDevice(deviceInfo)
                     }
                 }
             }
+        }
+
+        popupLayoutBluetooth = PopupLayoutBluetooth(this, getString(R.string.title_ble_devices))
+        popupLayoutBluetooth?.show(emptyList()) { device ->
+            selectedDevice = device;
+            connectBLE()
         }
     }
 
@@ -265,7 +351,10 @@ class MainActivity : AppCompatActivity() {
                     popupLayout3.show { eqUser ->
                         when (eqUser) {
                             PopupLayout3.EqUser.Cancel -> {
-                                Toast.makeText(this, "CANCEL", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(
+                                    this,
+                                    "CANCEL",
+                                    Toast.LENGTH_SHORT).show()
                             }
                             PopupLayout3.EqUser.User1 -> {
                                 binding.radioEQUser1.isChecked = true

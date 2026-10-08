@@ -2,10 +2,10 @@ package com.expamedia.roomequalizer.api
 
 import android.content.Context
 import android.util.Log
-import com.expamedia.roomequalizer.device.BluetoothDeviceManager
+import com.expamedia.roomequalizer.device.BleDeviceManager
 import java.io.ByteArrayOutputStream
 
-class BleApi(val context: Context, val bluetoothDeviceManager: BluetoothDeviceManager) {
+class BleApi(val context: Context, val bleDeviceManager: BleDeviceManager) {
     private final val TAG = "BleApi"
 
     enum class ModeType {
@@ -89,7 +89,7 @@ class BleApi(val context: Context, val bluetoothDeviceManager: BluetoothDeviceMa
                     0x01.toByte(),
                     0x72.toByte()
                 )
-                bluetoothDeviceManager.sendData(cmd)
+                bleDeviceManager.write(cmd)
             }
             ModeType.MEASUREMENT_MODE -> {
                 /*
@@ -102,7 +102,7 @@ class BleApi(val context: Context, val bluetoothDeviceManager: BluetoothDeviceMa
                     0x01.toByte(),
                     0x71.toByte()
                 )
-                bluetoothDeviceManager.sendData(cmd)
+                bleDeviceManager.write(cmd)
             }
         }
     }
@@ -123,7 +123,7 @@ class BleApi(val context: Context, val bluetoothDeviceManager: BluetoothDeviceMa
                     0x01.toByte(),
                     0x62.toByte()
                 )
-                bluetoothDeviceManager.sendData(cmd)
+                bleDeviceManager.write(cmd)
             }
             EqModeType.EQ_MODE_USER1 -> {
                 /*
@@ -136,7 +136,7 @@ class BleApi(val context: Context, val bluetoothDeviceManager: BluetoothDeviceMa
                     0x02.toByte(),
                     0x61.toByte()
                 )
-                bluetoothDeviceManager.sendData(cmd)
+                bleDeviceManager.write(cmd)
             }
             EqModeType.EQ_MODE_USER2 -> {
                 /*
@@ -149,7 +149,7 @@ class BleApi(val context: Context, val bluetoothDeviceManager: BluetoothDeviceMa
                     0x03.toByte(),
                     0x60.toByte()
                 )
-                bluetoothDeviceManager.sendData(cmd)
+                bleDeviceManager.write(cmd)
             }
         }
     }
@@ -168,6 +168,6 @@ class BleApi(val context: Context, val bluetoothDeviceManager: BluetoothDeviceMa
             0x05.toByte(),
             0x5e.toByte()
         )
-        bluetoothDeviceManager.sendData(cmd)
+        bleDeviceManager.write(cmd)
     }
 }

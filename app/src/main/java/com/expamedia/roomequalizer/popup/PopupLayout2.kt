@@ -10,7 +10,7 @@ import androidx.annotation.StringRes
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.graphics.drawable.toDrawable
 import androidx.lifecycle.LifecycleOwner
-import com.expamedia.roomequalizer.AudioDeviceManager
+import com.expamedia.roomequalizer.device.AudioDeviceManager
 import com.expamedia.roomequalizer.R
 import com.expamedia.roomequalizer.databinding.PopupLayout2Binding
 import androidx.lifecycle.lifecycleScope

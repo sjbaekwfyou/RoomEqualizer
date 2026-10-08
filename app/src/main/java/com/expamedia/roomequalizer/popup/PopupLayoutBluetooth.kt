@@ -2,13 +2,12 @@ package com.expamedia.roomequalizer.popup
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.graphics.Color
 import android.view.LayoutInflater
 import android.widget.ArrayAdapter
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.expamedia.roomequalizer.R
-import com.expamedia.roomequalizer.data.BluetoothDeviceInfo
+import com.expamedia.roomequalizer.data.BleDevice
 import com.expamedia.roomequalizer.databinding.PopupLayoutBluetoothBinding
 
 class PopupLayoutBluetooth (
@@ -26,7 +25,7 @@ class PopupLayoutBluetooth (
             .create()
     }
 
-    private val displayDeviceList = mutableListOf<BluetoothDeviceInfo>()
+    private val displayDeviceList = mutableListOf<BleDevice>()
     private val displayNames = mutableListOf<String>()
     private var adapter: ArrayAdapter<String>? = null
 
@@ -37,7 +36,7 @@ class PopupLayoutBluetooth (
     }
 
     @SuppressLint("MissingPermission")
-    fun show(deviceList: List<BluetoothDeviceInfo>, onDeviceSelected: (BluetoothDeviceInfo) -> Unit) {
+    fun show(deviceList: List<BleDevice>, onDeviceSelected: (BleDevice) -> Unit) {
         clearDevices()
 
         displayDeviceList.addAll(deviceList)
@@ -48,7 +47,7 @@ class PopupLayoutBluetooth (
             "$name\n(${device.address})"
         }
 
-        adapter = ArrayAdapter(context, android.R.layout.simple_list_item_1, deviceNames)
+        adapter = ArrayAdapter(context, R.layout.list_item_device, deviceNames)
         binding.listViewDevices.adapter = adapter
 
         binding.listViewDevices.setOnItemClickListener { _, _, position, _ ->
@@ -71,7 +70,7 @@ class PopupLayoutBluetooth (
     /**
      * 💡 3. 외부(스캔 콜백)에서 실시간으로 새 기기를 추가할 때 호출하는 함수
      */
-    fun addDevice(deviceInfo: BluetoothDeviceInfo) {
+    fun addDevice(deviceInfo: BleDevice) {
         if (displayDeviceList.any { it.address == deviceInfo.address }) return
 
         displayDeviceList.add(deviceInfo)
