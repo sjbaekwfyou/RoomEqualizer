@@ -32,4 +32,5 @@
     <string name="alert_no_bluetooth">No measurement Bluetooth device found.\nPlease pair a Bluetooth device first under [Settings] > [Bluetooth].</string>
     <string name="button_no_bluetooth">Open Settings</string>
     <string name="alert_bluetooth_connection_failed">Socket connection failed.</string>">
+    <string name="toast_bluetooth_connected">Connected! Awaiting data stream…</string>
 </resources>

@@ -57,7 +57,7 @@ class MainActivity : AppCompatActivity() {
         bluetoothDeviceManager = BluetoothDeviceManager(this)
 
         audioDeviceManager = AudioDeviceManager(this)
-        audioDeviceManager.initAudioDevices()
+        audioDeviceManager.registerAudioDeviceCallback()
 
         chirp = FloatArray(NativeEqualizer.ESS_LENGTH)
         nativeEqualizer = NativeEqualizer(this, chirp)
@@ -75,6 +75,7 @@ class MainActivity : AppCompatActivity() {
 
         binding.btnPlayMode.setOnClickListener {
             lifecycleScope.launch {
+                Toast.makeText(this@MainActivity, getString(R.string.play_mode), Toast.LENGTH_SHORT).show()
                 bleApi?.modeSetting(BleApi.ModeType.PLAY_MODE)
             }
         }
@@ -83,19 +84,16 @@ class MainActivity : AppCompatActivity() {
         binding.radioGroupEqSelection.setOnCheckedChangeListener { _, checkedId ->
             when (checkedId) {
                 R.id.radioEQDefault -> {
-                    //Toast.makeText(this, "Default", Toast.LENGTH_SHORT).show()
                     lifecycleScope.launch {
                         bleApi?.setEQMode(BleApi.EqModeType.EQ_MODE_DEFAULT)
                     }
                 }
                 R.id.radioEQUser1 -> {
-                    //Toast.makeText(this, "User1", Toast.LENGTH_SHORT).show()
                     lifecycleScope.launch {
                         bleApi?.setEQMode(BleApi.EqModeType.EQ_MODE_USER1)
                     }
                 }
                 R.id.radioEQUser2 -> {
-                    //Toast.makeText(this, "User2", Toast.LENGTH_SHORT).show()
                     lifecycleScope.launch {
                         bleApi?.setEQMode(BleApi.EqModeType.EQ_MODE_USER2)
                     }
@@ -233,7 +231,7 @@ class MainActivity : AppCompatActivity() {
                     return@launch
                 }
 
-                Toast.makeText(this@MainActivity, "Connected! Awaiting data stream...", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@MainActivity, getString(R.string.toast_bluetooth_connected), Toast.LENGTH_SHORT).show()
 
                 bluetoothDeviceManager.setupStreams()
 
