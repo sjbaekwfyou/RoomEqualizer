@@ -44,7 +44,8 @@
                 android:layout_marginRight="20dp"
                 android:layout_weight="1"
                 android:background="@drawable/bg_button"
-                android:text="Button ID" />
+                android:text="Button ID"
+                android:textColor="@color/btn_text_color" />
         </LinearLayout>
 
     </LinearLayout>

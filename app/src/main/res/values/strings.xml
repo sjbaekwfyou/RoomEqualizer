@@ -2,11 +2,11 @@
     <string name="app_name">RoomEqualizer</string>
     <string name="ble_connection">BLE Connection</string>
     <string name="play_mode">Play Mode</string>
+    <string name="measurement_mode">Measurement Mode</string>
     <string name="eq_selection">EQ Selection</string>
     <string name="eq_default">Default</string>
     <string name="eq_user1">User 1</string>
     <string name="eq_user2">User 2</string>
-    <string name="measurement_mode">Measurement Mode</string>
     <string name="exit">EXIT</string>
     <string name="start">START</string>
     <string name="cancel">CANCEL</string>

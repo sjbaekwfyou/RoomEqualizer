@@ -106,8 +106,8 @@ class MainActivity : AppCompatActivity() {
         binding.btnMeasurementMode.setOnClickListener {
             lifecycleScope.launch {
                 bleApi?.modeSetting(BleApi.ModeType.MEASUREMENT_MODE)
+                showPopupLayoutAudio()
             }
-            showPopupLayoutAudio()
         }
 
         binding.btnExit.setOnClickListener {

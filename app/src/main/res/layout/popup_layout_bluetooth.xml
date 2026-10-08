@@ -52,6 +52,7 @@
                 android:layout_height="wrap_content"
                 android:background="@drawable/bg_button"
                 android:text="@string/cancel"
+                android:textColor="@color/btn_text_color"
                 app:backgroundTint="@null" />
         </LinearLayout>
 

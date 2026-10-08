@@ -23,7 +23,8 @@
             android:layout_marginLeft="16dp"
             android:layout_marginRight="16dp"
             android:background="@drawable/bg_button"
-            android:text="@string/ble_connection" />
+            android:text="@string/ble_connection"
+            android:textColor="@color/btn_text_color" />
     </LinearLayout>
 
     <!-- ================================================== -->
@@ -53,7 +54,8 @@
                 android:layout_centerHorizontal="true"
                 android:layout_weight="1"
                 android:background="@drawable/bg_button"
-                android:text="@string/play_mode" />
+                android:text="@string/play_mode"
+                android:textColor="@color/btn_text_color" />
         </LinearLayout>
 
         <LinearLayout
@@ -155,7 +157,8 @@
             android:layout_marginLeft="16dp"
             android:layout_marginRight="16dp"
             android:background="@drawable/bg_button"
-            android:text="@string/measurement_mode" />
+            android:text="@string/measurement_mode"
+            android:textColor="@color/btn_text_color" />
     </LinearLayout>
 
     <!-- ================================================== -->
@@ -176,7 +179,8 @@
             android:layout_marginLeft="16dp"
             android:layout_marginRight="16dp"
             android:background="@drawable/bg_button"
-            android:text="@string/exit" />
+            android:text="@string/exit"
+            android:textColor="@color/btn_text_color" />
     </LinearLayout>
 
 </LinearLayout>

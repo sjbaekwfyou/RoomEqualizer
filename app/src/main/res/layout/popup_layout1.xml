@@ -43,7 +43,8 @@
                 android:layout_marginBottom="10dp"
                 android:layout_weight="1"
                 android:background="@drawable/bg_button"
-                android:text="@string/start" />
+                android:text="@string/start"
+                android:textColor="@color/btn_text_color" />
 
             <android.widget.Button
                 android:id="@+id/btnCancelMeasurement"
@@ -54,7 +55,8 @@
                 android:layout_marginRight="20dp"
                 android:layout_weight="1"
                 android:background="@drawable/bg_button"
-                android:text="@string/cancel" />
+                android:text="@string/cancel"
+                android:textColor="@color/btn_text_color" />
         </LinearLayout>
 
     </LinearLayout>
