@@ -4,26 +4,6 @@
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_expamedia_roomequalizer_native_NativeEqualizer_nativeInitialize(
-        JNIEnv *env,
-        jobject thiz,
-        jstring externalFilesDir
-) {
-    if (externalFilesDir == nullptr) return;
-
-    const char *buffer = env->GetStringUTFChars(externalFilesDir, nullptr);
-    if (!buffer) {
-        LOGE("setExternalFilesDir. buffer is null.");
-    }
-    else {
-        LOGD("setExternalFilesDir. externalFilesDir is %s", buffer);
-        SetExternalFilesDir(buffer);
-        env->ReleaseStringUTFChars(externalFilesDir, buffer);
-    }
-}
-
-extern "C"
-JNIEXPORT void JNICALL
 Java_com_expamedia_roomequalizer_native_NativeEqualizer_nativeGenerateESS(
         JNIEnv *env,
         jobject thiz,

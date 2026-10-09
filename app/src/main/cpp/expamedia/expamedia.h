@@ -7,8 +7,6 @@
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
-void SetExternalFilesDir(const char* externalFilesDir);
-
 void GenerateESS(float FS, int ESS_LENGTH, float* chirp);
 
 int AmbientLevel(float FS, float* result, size_t resultLength);
