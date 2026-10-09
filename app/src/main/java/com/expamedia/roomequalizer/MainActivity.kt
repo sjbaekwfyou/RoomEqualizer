@@ -54,7 +54,6 @@ class MainActivity : AppCompatActivity() {
         bleDeviceManager = BleDeviceManager(this)
 
         audioDeviceManager = AudioDeviceManager(this)
-        audioDeviceManager.registerAudioDeviceCallback()
 
         chirp = FloatArray(NativeEqualizer.ESS_LENGTH)
         nativeEqualizer = NativeEqualizer(this, chirp)

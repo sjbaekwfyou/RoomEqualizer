@@ -3,7 +3,6 @@ package com.expamedia.roomequalizer.device
 import android.annotation.SuppressLint
 import android.content.Context
 import android.media.AudioAttributes
-import android.media.AudioDeviceCallback
 import android.media.AudioDeviceInfo
 import android.media.AudioFormat
 import android.media.AudioManager
@@ -53,51 +52,7 @@ class AudioDeviceManager(private val context: Context) {
         }
     }
 
-    private fun initAudioDevices() {
-        try {
-            // 1. 일반 미디어 모드로 설정 (A2DP / 미디어 출력 자동 전환 기본 조건)
-            audioManager.mode = AudioManager.MODE_NORMAL
 
-            // 레거시 스피커폰 설정 해제
-            @Suppress("DEPRECATION")
-            if (audioManager.isSpeakerphoneOn) {
-                @Suppress("DEPRECATION")
-                audioManager.isSpeakerphoneOn = false
-            }
-
-            // 2. Android 12 (API 31) 이상 대응: 통신 전용 라우팅 강제 설정 해제
-            // USAGE_MEDIA 오디오는 MODE_NORMAL 상태에서 시스템이 연결된 블루투스 A2DP/스피커로 자동 라우팅합니다.
-            // setCommunicationDevice는 음성 통화(VoIP) 전용이므로, 미디어 스피커(A2DP, type 8) 전달 시
-            // IllegalArgumentException: invalid device type: 8 이 발생할 수 있습니다.
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                try {
-                    audioManager.clearCommunicationDevice()
-                } catch (e: Exception) {
-                    Log.e(TAG, "Failed to clear communication device: ${e.message}", e)
-                }
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error in initAudioDevices: ${e.message}", e)
-        }
-    }
-
-    fun registerAudioDeviceCallback() {
-        try {
-            audioManager.registerAudioDeviceCallback(object : AudioDeviceCallback() {
-                override fun onAudioDevicesAdded(addedDevices: Array<out AudioDeviceInfo>?) {
-                    // 새로운 오디오 장치(블루투스 스피커 등)가 연결되었을 때
-                    initAudioDevices()
-                }
-
-                override fun onAudioDevicesRemoved(removedDevices: Array<out AudioDeviceInfo>?) {
-                    // 오디오 장치 연결이 해제되었을 때 (내장 스피커로 복구)
-                    initAudioDevices()
-                }
-            }, null)
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to register audio device callback: ${e.message}", e)
-        }
-    }
 
     fun releaseAudioDevices() {
         try {
@@ -138,7 +93,7 @@ class AudioDeviceManager(private val context: Context) {
                 recordBufferSize
             )
 
-            // 💡 2. 마이크 선택: USB 마이크가 연결되어 있으면 우선 사용, 없으면 내장 마이크(TYPE_BUILTIN_MIC) 사용
+            // 💡 1. 입력 마이크 선택: USB 마이크가 연결되어 있으면 USB 마이크 사용, 없으면 내장 마이크 사용
             try {
                 val inputDevices = audioManager.getDevices(AudioManager.GET_DEVICES_INPUTS)
 
@@ -150,16 +105,16 @@ class AudioDeviceManager(private val context: Context) {
 
                 if (usbMic != null) {
                     val isSuccess = audioRecord.setPreferredDevice(usbMic)
-                    Log.d(TAG, "USB 마이크 고정 설정 결과: $isSuccess (${usbMic.productName})")
+                    Log.d(TAG, "[입력] USB 마이크 사용: $isSuccess (${usbMic.productName})")
                 } else {
                     val builtinMic = inputDevices.firstOrNull { device ->
                         device.type == AudioDeviceInfo.TYPE_BUILTIN_MIC
                     }
                     builtinMic?.let {
                         val isSuccess = audioRecord.setPreferredDevice(it)
-                        Log.d(TAG, "내장 마이크 고정 설정 결과: $isSuccess (${it.productName})")
+                        Log.d(TAG, "[입력] 내장 마이크 사용: $isSuccess (${it.productName})")
                     } ?: run {
-                        Log.w(TAG, "내장 마이크 장치를 찾지 못했습니다.")
+                        Log.w(TAG, "[입력] 내장 마이크 장치를 찾지 못했습니다.")
                     }
                 }
             } catch (e: Exception) {
@@ -169,7 +124,7 @@ class AudioDeviceManager(private val context: Context) {
             val minTrackBufferSize =
                 AudioTrack.getMinBufferSize(SAMPLE_RATE, CHANNEL_OUT, AUDIO_FORMAT)
 
-            // 💡 3. AudioTrack 속성도 USAGE_MEDIA (음악/측정용)로 맞추어 고음질 출력 유지
+            // AudioTrack 속성도 USAGE_MEDIA (음악/측정용)로 맞추어 고음질 출력 유지
             val audioTrack = AudioTrack.Builder()
                 .setAudioAttributes(
                     AudioAttributes.Builder()
@@ -192,6 +147,36 @@ class AudioDeviceManager(private val context: Context) {
                 )
                 .setTransferMode(AudioTrack.MODE_STATIC)
                 .build()
+
+            // 💡 2. 출력 스피커 선택: 블루투스 스피커가 연결되어 있으면 블루투스 스피커 사용, 없으면 내장 스피커 사용
+            try {
+                val outputDevices = audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
+                val btSpeaker = outputDevices.firstOrNull { device ->
+                    device.type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP ||
+                            device.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
+                            (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && (
+                                    device.type == AudioDeviceInfo.TYPE_BLE_SPEAKER ||
+                                            device.type == AudioDeviceInfo.TYPE_BLE_HEADSET
+                                    ))
+                }
+
+                if (btSpeaker != null) {
+                    val isSuccess = audioTrack.setPreferredDevice(btSpeaker)
+                    Log.d(TAG, "[출력] 블루투스 스피커 사용: $isSuccess (${btSpeaker.productName})")
+                } else {
+                    val builtinSpeaker = outputDevices.firstOrNull { device ->
+                        device.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER
+                    }
+                    builtinSpeaker?.let {
+                        val isSuccess = audioTrack.setPreferredDevice(it)
+                        Log.d(TAG, "[출력] 내장 스피커 사용: $isSuccess (${it.productName})")
+                    } ?: run {
+                        Log.w(TAG, "[출력] 내장 스피커 장치를 찾지 못했습니다.")
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "스피커 출력 장치 설정 중 오류 발생: ${e.message}", e)
+            }
 
             audioTrack.write(outputFloatData, 0, outputFloatData.size, AudioTrack.WRITE_BLOCKING)
 
