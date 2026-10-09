@@ -221,6 +221,14 @@ class MainActivity : AppCompatActivity() {
                             getString(R.string.toast_bluetooth_connected),
                             Toast.LENGTH_SHORT
                         ).show()
+                    }
+                }, connectionReady = {
+                    lifecycleScope.launch(Dispatchers.Main) {
+                        Toast.makeText(
+                            this@MainActivity,
+                            getString(R.string.toast_bluetooth_service_ready),
+                            Toast.LENGTH_SHORT
+                        ).show()
 
                         bleDeviceManager.getEQMode()
                     }
@@ -241,14 +249,9 @@ class MainActivity : AppCompatActivity() {
                             ).show()
                         }, listenerGetEqMode = { eqModeType ->
                             when (eqModeType) {
-                                BleDeviceManager.EqModeType.EQ_MODE_DEFAULT -> binding.radioEQDefault.isChecked =
-                                    true
-
-                                BleDeviceManager.EqModeType.EQ_MODE_USER1 -> binding.radioEQUser1.isChecked =
-                                    true
-
-                                BleDeviceManager.EqModeType.EQ_MODE_USER2 -> binding.radioEQUser2.isChecked =
-                                    true
+                                BleDeviceManager.EqModeType.EQ_MODE_DEFAULT -> binding.radioEQDefault.isChecked = true
+                                BleDeviceManager.EqModeType.EQ_MODE_USER1 -> binding.radioEQUser1.isChecked = true
+                                BleDeviceManager.EqModeType.EQ_MODE_USER2 -> binding.radioEQUser2.isChecked = true
                             }
                         })
                     }

@@ -3,6 +3,7 @@ package com.expamedia.roomequalizer.device
 import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCallback
 import android.bluetooth.BluetoothGattCharacteristic
@@ -18,7 +19,6 @@ import android.util.Log
 import android.widget.Toast
 import android.os.Build
 import android.bluetooth.BluetoothStatusCodes
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -33,13 +33,11 @@ import kotlinx.coroutines.Dispatchers
 import com.expamedia.roomequalizer.data.BleDevice
 import com.expamedia.roomequalizer.data.ScanState
 import java.util.concurrent.atomic.AtomicBoolean
-import kotlin.collections.addAll
-import kotlin.collections.get
-import kotlin.compareTo
-import kotlin.text.clear
 import kotlin.time.Duration.Companion.milliseconds
 
-class BleDeviceManager(private val context: Context) : ViewModel() {
+@SuppressLint("StaticFieldLeak")
+class BleDeviceManager(context: Context) : ViewModel() {
+    private val context: Context = context.applicationContext
 
     enum class ModeType {
         PLAY_MODE,
@@ -53,6 +51,8 @@ class BleDeviceManager(private val context: Context) : ViewModel() {
     }
 
     private final val TAG = "BleDeviceManager"
+    private final val TAG_BLE_DATA_RX = "BleDataRx"
+    private final val TAG_BLE_DATA_TX = "BleDataTx"
     private val parseCmdDatas = mutableListOf<Byte>()
 
     // ✅ ESP32 쪽에서 사용한 Service / Characteristic UUID 로 교체해야 함
@@ -85,7 +85,7 @@ class BleDeviceManager(private val context: Context) : ViewModel() {
     @SuppressLint("MissingPermission")
     fun startScan(scalCallback: (BleDevice) -> Unit) {
         val btAdapter = adapter ?: run {
-            Log.e("BLE_test", "❌ BluetoothAdapter is null — BLE not supported on this device.")
+            Log.e(TAG, "❌ BluetoothAdapter is null — BLE not supported on this device.")
             Toast.makeText(context, "This device does not support BLE.", Toast.LENGTH_SHORT).show()
             return
         }
@@ -104,25 +104,25 @@ class BleDeviceManager(private val context: Context) : ViewModel() {
             ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED
         }
         if (missing.isNotEmpty()) {
-            Log.w("BLE_test", "⚠️ Permission denied: $missing")
+            Log.w(TAG, "⚠️ Permission denied: $missing")
             Toast.makeText(context, "Please allow nearby devices permission.", Toast.LENGTH_SHORT).show()
             return
         }
 
         val scanner = btAdapter.bluetoothLeScanner ?: run {
-            Log.e("BLE_test", "❌ BluetoothLeScanner is null — Failed to create BLE scanner.")
+            Log.e(TAG, "❌ BluetoothLeScanner is null — Failed to create BLE scanner.")
             Toast.makeText(context, "Cannot start BLE scan.", Toast.LENGTH_SHORT).show()
             return
         }
 
         if (_scanState.value == ScanState.Scanning) {
-            Log.w("BLE_test", "⚠️ Already scanning.")
+            Log.w(TAG, "⚠️ Already scanning.")
             return
         }
 
         // 이전 콜백 중복 방지
         scanCallback?.let {
-            Log.w("BLE_test", "⚠️ Stop existing scan and start new one.")
+            Log.w(TAG, "⚠️ Stop existing scan and start new one.")
             scanner.stopScan(it)
         }
 
@@ -142,7 +142,7 @@ class BleDeviceManager(private val context: Context) : ViewModel() {
 
                 discovered[addr] = bleDevice
                 _devices.value = discovered.values.toList()
-                Log.d("BLE_test", "Discovered: $name [$addr] RSSI:$rssi")
+                Log.d(TAG, "Discovered: $name [$addr] RSSI:$rssi")
 
                 scalCallback.invoke(bleDevice)
             }
@@ -159,18 +159,18 @@ class BleDeviceManager(private val context: Context) : ViewModel() {
                     scalCallback.invoke(bleDevice)
                 }
                 _devices.value = discovered.values.toList()
-                Log.d("BLE_test", "Batch scan results: ${results.size}")
+                Log.d(TAG, "Batch scan results: ${results.size}")
             }
 
             override fun onScanFailed(errorCode: Int) {
-                Log.e("BLE_test", "❌ Scan failed (errorCode=$errorCode)")
+                Log.e(TAG, "❌ Scan failed (errorCode=$errorCode)")
                 _scanState.value = ScanState.Error("Scan failed ($errorCode)")
                 when (errorCode) {
-                    1 -> Log.e("BLE_test", "SCAN_FAILED_ALREADY_STARTED — Already scanning")
-                    2 -> Log.e("BLE_test", "SCAN_FAILED_APPLICATION_REGISTRATION_FAILED — BLE permission/system issue")
-                    3 -> Log.e("BLE_test", "SCAN_FAILED_FEATURE_UNSUPPORTED — BLE scan not supported on this device")
-                    4 -> Log.e("BLE_test", "SCAN_FAILED_INTERNAL_ERROR — System BLE stack error (Reboot required)")
-                    5 -> Log.e("BLE_test", "SCAN_FAILED_OUT_OF_HARDWARE_RESOURCES — BLE buffer shortage")
+                    1 -> Log.e(TAG, "SCAN_FAILED_ALREADY_STARTED — Already scanning")
+                    2 -> Log.e(TAG, "SCAN_FAILED_APPLICATION_REGISTRATION_FAILED — BLE permission/system issue")
+                    3 -> Log.e(TAG, "SCAN_FAILED_FEATURE_UNSUPPORTED — BLE scan not supported on this device")
+                    4 -> Log.e(TAG, "SCAN_FAILED_INTERNAL_ERROR — System BLE stack error (Reboot required)")
+                    5 -> Log.e(TAG, "SCAN_FAILED_OUT_OF_HARDWARE_RESOURCES — BLE buffer shortage")
                 }
                 stopScan()
             }
@@ -180,7 +180,7 @@ class BleDeviceManager(private val context: Context) : ViewModel() {
         scanCallback = callback
         scanner.startScan(null, settings, callback)
         _scanState.value = ScanState.Scanning
-        Log.i("BLE_test", "✅ BLE scan started")
+        Log.i(TAG, "✅ BLE scan started")
 
         // �� 10초 후 자동 중지
         timeoutJob?.cancel()
@@ -190,7 +190,7 @@ class BleDeviceManager(private val context: Context) : ViewModel() {
                 stopScan()
                 if (_devices.value.isEmpty()) {
                     _scanState.value = ScanState.Error("No devices found in 10 seconds.")
-                    Log.w("BLE_test", "⏰ BLE device not found for 10 seconds")
+                    Log.w(TAG, "⏰ BLE device not found for 10 seconds")
                     Toast.makeText(context, "No BLE devices found nearby.", Toast.LENGTH_SHORT).show()
                 }
             }
@@ -204,7 +204,7 @@ class BleDeviceManager(private val context: Context) : ViewModel() {
         val scanner = btAdapter.bluetoothLeScanner ?: return
         scanCallback?.let {
             scanner.stopScan(it)
-            Log.i("BLE_test", "�� BLE scan stopped")
+            Log.i(TAG, "�� BLE scan stopped")
         }
         scanCallback = null
         timeoutJob?.cancel()
@@ -213,47 +213,38 @@ class BleDeviceManager(private val context: Context) : ViewModel() {
 
     /** �� 기기 연결 (GATT 콜백 포함) */
     @SuppressLint("MissingPermission")
-    fun connectToDevice(device: BleDevice, connectionResult: (Boolean) -> Unit, receiveCallback: (ByteArray) -> Unit) {
+    @Suppress("DEPRECATION")
+    fun connectToDevice(device: BleDevice, connectionResult: (Boolean) -> Unit, connectionReady: () -> Unit, receiveCallback: (ByteArray) -> Unit) {
         val btDevice = adapter?.getRemoteDevice(device.address)
         if (btDevice == null) {
-            Log.e("BLE_test", "❌ getRemoteDevice failed: ${device.address}")
+            Log.e(TAG, "❌ getRemoteDevice failed: ${device.address}")
             return
         }
 
-        Log.d("BLE_test", "�� Attempting connection: ${device.name} (${device.address})")
+        Log.d(TAG, "�� Attempting connection: ${device.name} (${device.address})")
 
-        gatt = btDevice.connectGatt(context, false, object : BluetoothGattCallback() {
+        val gattCallback = object : BluetoothGattCallback() {
 
             override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
                 super.onConnectionStateChange(gatt, status, newState)
 
                 when (newState) {
                     BluetoothProfile.STATE_CONNECTED -> {
-                        Log.i("BLE_test", "✅ GATT connected, starting service discovery")
+                        Log.i(TAG, "✅ GATT connected, starting service discovery")
                         this@BleDeviceManager.gatt = gatt
                         gatt.discoverServices()
 
                         viewModelScope.launch(Dispatchers.Main) {
-                            /*Toast.makeText(
-                                context,
-                                "${device.name} connected.",
-                                Toast.LENGTH_SHORT
-                            ).show()*/
                             connectionResult.invoke(true)
                         }
                     }
 
                     BluetoothProfile.STATE_DISCONNECTED -> {
-                        Log.w("BLE_test", "�� GATT disconnected")
+                        Log.w(TAG, " GATT disconnected")
                         this@BleDeviceManager.gatt = null
                         writeChar = null
 
                         viewModelScope.launch(Dispatchers.Main) {
-                            /*Toast.makeText(
-                                context,
-                                "Disconnected.",
-                                Toast.LENGTH_SHORT
-                            ).show()*/
                             connectionResult.invoke(false)
                         }
                     }
@@ -276,7 +267,7 @@ class BleDeviceManager(private val context: Context) : ViewModel() {
                 writeChar = service.getCharacteristic(WRITE_CHAR_UUID)
                 val notifyChar = service.getCharacteristic(NOTIFY_CHAR_UUID) ?: return
 
-                Log.i("BLE_test", "✅ 서비스 및 캐릭터리스틱 찾기 성공")
+                Log.i(TAG, "✅ 서비스 및 캐릭터리스틱 찾기 성공")
 
                 // 1. 앱 레벨 알림 등록
                 gatt.setCharacteristicNotification(notifyChar, true)
@@ -303,7 +294,7 @@ class BleDeviceManager(private val context: Context) : ViewModel() {
                             @Suppress("DEPRECATION")
                             gatt.writeDescriptor(cccd)
                         }
-                        Log.d("BLE_test", "최종 CCCD 구독 결과: $success")
+                        Log.d(TAG, "최종 CCCD 구독 결과: $success")
 
                         if (success) {
                             delay(150.milliseconds)
@@ -311,6 +302,8 @@ class BleDeviceManager(private val context: Context) : ViewModel() {
                             gatt.requestMtu(64) // MTU 요청
                             gatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH)
                             readyForList.set(true)
+
+                            connectionReady.invoke()
                         }
                     }
                 }
@@ -325,20 +318,8 @@ class BleDeviceManager(private val context: Context) : ViewModel() {
                 if (characteristic.uuid != NOTIFY_CHAR_UUID) return
                 if (value.isEmpty()) return
 
-                when (val header = value[0].toInt() and 0xFF) {
-                    0xF1 -> {
-                        // 파일 리스트 (기존 로직 그대로)
-                        Log.d("BLE_file", "RX chunk F1 (${value.size}B): ${value.hex()}")
-                        receiveCallback.invoke(value)
-                    }
-                    0xED -> {
-                        Log.d("BLE_effect", "RX ED frame (${value.size}B): ${value.hex()}")
-                        receiveCallback.invoke(value)
-                    }
-                    else -> {
-                        Log.w("BLE_misc", "unknown header=0x${"%02X".format(header)} : ${value.hex()}")
-                    }
-                }
+                Log.d(TAG_BLE_DATA_RX, "RX (${value.size}B): ${value.hex()}")
+                receiveCallback.invoke(value)
             }
 
             override fun onCharacteristicWrite(
@@ -348,17 +329,24 @@ class BleDeviceManager(private val context: Context) : ViewModel() {
             ) {
                 super.onCharacteristicWrite(gatt, characteristic, status)
                 if (status == BluetoothGatt.GATT_SUCCESS) {
-                    Log.i("BLE_test", "💾 Characteristic write success")
+                    Log.i(TAG, "💾 Characteristic write success")
                 } else {
-                    Log.e("BLE_test", "❌ Characteristic write failed: status=$status")
+                    Log.e(TAG, "❌ Characteristic write failed: status=$status")
                 }
             }
 
             override fun onMtuChanged(gatt: BluetoothGatt, mtu: Int, status: Int) {
                 super.onMtuChanged(gatt, mtu, status)
-                Log.d("BLE_test", "onMtuChanged: mtu=$mtu, status=$status")
+                Log.d(TAG, "onMtuChanged: mtu=$mtu, status=$status")
             }
-        })
+        }
+
+        gatt = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            btDevice.connectGatt(context, false, gattCallback, BluetoothDevice.TRANSPORT_LE, BluetoothDevice.PHY_LE_1M)
+        } else {
+            @Suppress("DEPRECATION")
+            btDevice.connectGatt(context, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
+        }
     }
 
     @SuppressLint("MissingPermission")
@@ -366,7 +354,7 @@ class BleDeviceManager(private val context: Context) : ViewModel() {
         try {
             gatt?.disconnect()
             gatt?.close()
-            Log.i("BLE_test", "�� GATT disconnected")
+            Log.i(TAG, "�� GATT disconnected")
 
             /*viewModelScope.launch(Dispatchers.Main) {
                 Toast.makeText(
@@ -377,7 +365,7 @@ class BleDeviceManager(private val context: Context) : ViewModel() {
             }*/
 
         } catch (e: Exception) {
-            Log.e("BLE_test", "❌ Error during disconnect: ${e.message}")
+            Log.e(TAG, "❌ Error during disconnect: ${e.message}")
         } finally {
             gatt = null
             writeChar = null
@@ -387,12 +375,14 @@ class BleDeviceManager(private val context: Context) : ViewModel() {
     @SuppressLint("MissingPermission")
     @Suppress("DEPRECATION")
     private fun write(bytes: ByteArray): Boolean {
+        Log.d(TAG_BLE_DATA_TX, "TX (${bytes.size}B): ${bytes.hex()}")
+
         val g = gatt ?: run {
-            Toast.makeText(context, (context as AppCompatActivity).getString(R.string.toast_ble_not_connected), Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, R.string.toast_ble_not_connected, Toast.LENGTH_SHORT).show()
             return false
         }
         val ch = writeChar ?: run {
-            Toast.makeText(context, (context as AppCompatActivity).getString(R.string.toast_server_not_ready_yet), Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, R.string.toast_server_not_ready_yet, Toast.LENGTH_SHORT).show()
             return false
         }
 
@@ -404,10 +394,10 @@ class BleDeviceManager(private val context: Context) : ViewModel() {
             ch.writeType = BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
             g.writeCharacteristic(ch)
         }
-        Log.d("BLE_test", "�� write: ${bytes.joinToString(" ") { "%02X".format(it) }} (ok=$ok)")
+        Log.d(TAG, "�� write: ${bytes.joinToString(" ") { "%02X".format(it) }} (ok=$ok)")
 
         if (!ok) {
-            Log.w("BLE_test", "⚠ writeCharacteristic() false - GATT busy or error")
+            Log.w(TAG, "⚠ writeCharacteristic() false - GATT busy or error")
         }
 
         return ok
@@ -421,7 +411,7 @@ class BleDeviceManager(private val context: Context) : ViewModel() {
             val extracted = parseCmdDatas.subList(0, 4).toByteArray()
             parseCmdDatas.subList(0, 4).clear()
 
-            Log.d(TAG, "parseCmd. extracted: ${extracted.toList()}")
+            Log.d(TAG, "parseCmd. extracted: ${extracted.hex()}")
 
             if (extracted[0] == 0xed.toByte()) {
                 if (extracted[1] == 0xa0.toByte()) {
@@ -429,11 +419,12 @@ class BleDeviceManager(private val context: Context) : ViewModel() {
                         Log.d(TAG, "parseCmd. ModeType.PLAY_MODE")
 
                         listenerMode(ModeType.PLAY_MODE)
-                    }
-                    else if (extracted[2] == 0x02.toByte() && extracted[3] == 0x70.toByte()) {
+                    } else if (extracted[2] == 0x02.toByte() && extracted[3] == 0x70.toByte()) {
                         Log.d(TAG, "parseCmd. ModeType.MEASUREMENT_MODE")
 
                         listenerMode(ModeType.MEASUREMENT_MODE)
+                    } else {
+                        Toast.makeText(context, "UNKNOWN: ${extracted.hex()}", Toast.LENGTH_SHORT).show()
                     }
                 }
                 else if (extracted[1] == 0xb0.toByte()) {
@@ -449,18 +440,22 @@ class BleDeviceManager(private val context: Context) : ViewModel() {
                         Log.d(TAG, "parseCmd. EqModeType.EQ_MODE_USER2")
 
                         listenerEqMode(EqModeType.EQ_MODE_USER2)
-                    } else {
-                        if (extracted[3] == 0x5d.toByte()) {
-                            val eqMode = extracted[2] - 0x04
-                            Log.d(TAG, "parseCmd. getEQMode. received:$eqMode eqMode:$eqMode")
+                    } else if (extracted[3] == 0x5d.toByte()) {
+                        val eqMode = extracted[2] - 0x04
+                        Log.d(TAG, "parseCmd. getEQMode. received:$eqMode eqMode:$eqMode")
 
-                            when (eqMode) {
-                                0 -> listenerGetEqMode(EqModeType.EQ_MODE_DEFAULT)
-                                1 -> listenerGetEqMode(EqModeType.EQ_MODE_USER1)
-                                2 -> listenerGetEqMode(EqModeType.EQ_MODE_USER2)
-                            }
+                        when (eqMode) {
+                            0 -> listenerGetEqMode(EqModeType.EQ_MODE_DEFAULT)
+                            1 -> listenerGetEqMode(EqModeType.EQ_MODE_USER1)
+                            2 -> listenerGetEqMode(EqModeType.EQ_MODE_USER2)
                         }
                     }
+                    else {
+                        Toast.makeText(context, "UNKNOWN: ${extracted.hex()}", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                else {
+                    Toast.makeText(context, "UNKNOWN: ${extracted.hex()}", Toast.LENGTH_SHORT).show()
                 }
             }
         }

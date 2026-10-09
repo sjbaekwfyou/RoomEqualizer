@@ -40,4 +40,5 @@
     <string name="button_no_bluetooth">Open Settings</string>
     <string name="alert_bluetooth_connection_failed">BLE connection failed.</string>">
     <string name="toast_bluetooth_connected">Connected! Awaiting data stream…</string>
+    <string name="toast_bluetooth_service_ready">Service and characteristics found successfully.</string>
 </resources>
