@@ -314,9 +314,15 @@ class MainActivity : AppCompatActivity() {
                                     Toast.LENGTH_SHORT).show()
                             }
                             PopupLayout3.EqUser.User1 -> {
+                                lifecycleScope.launch {
+                                    bleDeviceManager.saveEQMode(BleDeviceManager.EqModeType.EQ_MODE_USER1, IIRcoef)
+                                }
                                 binding.radioEQUser1.isChecked = true
                             }
                             PopupLayout3.EqUser.User2 -> {
+                                lifecycleScope.launch {
+                                    bleDeviceManager.saveEQMode(BleDeviceManager.EqModeType.EQ_MODE_USER2, IIRcoef)
+                                }
                                 binding.radioEQUser2.isChecked = true
                             }
                         }

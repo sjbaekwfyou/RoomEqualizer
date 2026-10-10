@@ -32,6 +32,9 @@ import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import com.expamedia.roomequalizer.data.BleDevice
 import com.expamedia.roomequalizer.data.ScanState
+import com.expamedia.roomequalizer.popup.PopupLayout3
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -522,6 +525,29 @@ class BleDeviceManager(context: Context) : ViewModel() {
 
     // Bluetooth control(BLE)을 통하여 4byte 제어 데이터를 전송하고 4byte 회신을 수신
     suspend fun getEQMode() {
+        Log.d(TAG, "getEQMode.")
+
         write(cmdGetEqModeTx)
+    }
+
+    suspend fun saveEQMode(eqModeType: EqModeType, IIRcoef: FloatArray) {
+        val byteArray = ByteBuffer.allocate(IIRcoef.size * 4).apply {
+            order(ByteOrder.LITTLE_ENDIAN)
+            asFloatBuffer().put(IIRcoef)
+        }.array()
+
+        when(eqModeType) {
+            EqModeType.EQ_MODE_USER1 -> {
+                Log.d(TAG, "saveEQMode. User1. ${byteArray.hex()}")
+                // TODO: write byteArray to user1
+            }
+            EqModeType.EQ_MODE_USER2 -> {
+                Log.d(TAG, "saveEQMode. User2. ${byteArray.hex()}")
+                // TODO: write byteArray to user2
+            }
+            EqModeType.EQ_MODE_DEFAULT -> {
+                Log.d(TAG, "saveEQMode. User3. not supported")
+            }
+        }
     }
 }
