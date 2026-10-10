@@ -79,6 +79,58 @@ class BleDeviceManager(context: Context) : ViewModel() {
     private var timeoutJob: Job? = null
 
     val readyForList = AtomicBoolean(false)
+
+    /*
+     * App → BT {0xec, 0xa0, 0x01, 0x72}, BT → App Return {0xed, 0xa0, 0x01, 0x71}
+     * 통신 성공하면 AI Music Box 위의 Mic Reverb LED 중 Low 가 켜짐
+     */
+    @OptIn(ExperimentalUnsignedTypes::class)
+    val cmdPlayModeTx = ubyteArrayOf(0xecu, 0xa0u, 0x01u, 0x72u).toByteArray()
+    @OptIn(ExperimentalUnsignedTypes::class)
+    val cmdPlayModeRx = ubyteArrayOf(0xedu, 0xa0u, 0x01u, 0x71u).toByteArray()
+    /*
+     * App → BT {0xec, 0xa0, 0x02, 0x71}, BT → App Return {0xed, 0xa0, 0x02, 0x70}
+     * 통신 성공하면 AI Music Box 위의 Mic Reverb LED 중 Mid 가 켜짐
+     */
+    @OptIn(ExperimentalUnsignedTypes::class)
+    val cmdMeasurementModeTx = ubyteArrayOf(0xedu, 0xa0u, 0x01u, 0x71u).toByteArray()
+    @OptIn(ExperimentalUnsignedTypes::class)
+    val cmdMeasurementModeRx = ubyteArrayOf(0xedu, 0xa0u, 0x02u, 0x70u).toByteArray()
+    /*
+     * App → BT {0xec, 0xb0, 0x01, 0x62}, BT → App Return {0xed, 0xb0, 0x01, 0x61}
+     * 통신 성공하면 AI Music Box 위의 Vocal Effect LED 중 Minions 가 켜짐
+     */
+    @OptIn(ExperimentalUnsignedTypes::class)
+    val cmdEqModeDefaultTx = ubyteArrayOf(0xecu, 0xb0u, 0x01u, 0x62u).toByteArray()
+    @OptIn(ExperimentalUnsignedTypes::class)
+    val cmdEqModeDefaultRx = ubyteArrayOf(0xedu, 0xb0u, 0x01u, 0x61u).toByteArray()
+    /*
+     * App → BT {0xec, 0xb0, 0x02, 0x61}, BT → App Return {0xed, 0xb0, 0x02, 0x60}
+     * 통신 성공하면 AI Music Box 위의 Vocal Effect LED 중 Monster 가 켜짐
+     */
+    @OptIn(ExperimentalUnsignedTypes::class)
+    val cmdEqModeUser1Tx = ubyteArrayOf(0xecu, 0xb0u, 0x02u, 0x61u).toByteArray()
+    @OptIn(ExperimentalUnsignedTypes::class)
+    val cmdEqModeUser1Rx = ubyteArrayOf(0xedu, 0xb0u, 0x02u, 0x60u).toByteArray()
+    /*
+     * App → BT {0xec, 0xb0, 0x03, 0x60}, BT → App Return {0xed, 0xb0, 0x03, 0x5f}
+     * 통신 성공하면 AI Music Box 위의 Vocal Effect LED 중 Monster 가 켜짐
+     */
+    @OptIn(ExperimentalUnsignedTypes::class)
+    val cmdEqModeUser2Tx = ubyteArrayOf(0xecu, 0xb0u, 0x03u, 0x60u).toByteArray()
+    @OptIn(ExperimentalUnsignedTypes::class)
+    val cmdEqModeUser2Rx = ubyteArrayOf(0xedu, 0xb0u, 0x03u, 0x5fu).toByteArray()
+    /*
+     * return value : 0(default), 1(User1), 2(User2)
+     * App → BT {0xec, 0xb0, 0x05, 0x5e}, BT → App Return {0xed, 0xb0, 0x05, 0x5d}
+     * 통신 성공하면 AI Music Box 위의 Vocal Effect LED 중 Duet  켜짐
+     * 회신된 4 byte 데이터 중 (3번째 바이트-0x04) return 함 (현재 AI Music Box 펌웨어에서는 회신값이 고정으므로 return 값 항상 1임)
+     */
+    @OptIn(ExperimentalUnsignedTypes::class)
+    val cmdGetEqModeTx = ubyteArrayOf(0xecu, 0xb0u, 0x05u, 0x5eu).toByteArray()
+    @OptIn(ExperimentalUnsignedTypes::class)
+    val cmdGetEqModeRx = ubyteArrayOf(0xecu, 0xb0u, 0x04u, 0x5du).toByteArray()
+
     private fun ByteArray.hex(): String = joinToString(" ") { "%02X".format(it) }
 
     /** �� 스캔 시작 (10초 후 자동 중지) */
@@ -152,9 +204,9 @@ class BleDeviceManager(context: Context) : ViewModel() {
                     val name = r.device.name ?: r.scanRecord?.deviceName ?: "Unknown"
                     if (name == "Unknown") continue // Filter Unknown
 
-                    val addr = r.device.address ?: continue
-                    val bleDevice = BleDevice("$name (RSSI:${r.rssi})", addr)
-                    discovered[addr] = bleDevice
+                    val address = r.device.address ?: continue
+                    val bleDevice = BleDevice("$name (RSSI:${r.rssi})", address)
+                    discovered[address] = bleDevice
 
                     scalCallback.invoke(bleDevice)
                 }
@@ -356,14 +408,6 @@ class BleDeviceManager(context: Context) : ViewModel() {
             gatt?.close()
             Log.i(TAG, "�� GATT disconnected")
 
-            /*viewModelScope.launch(Dispatchers.Main) {
-                Toast.makeText(
-                    context,
-                    "Disconnected.",
-                    Toast.LENGTH_SHORT
-                ).show()
-            }*/
-
         } catch (e: Exception) {
             Log.e(TAG, "❌ Error during disconnect: ${e.message}")
         } finally {
@@ -413,48 +457,32 @@ class BleDeviceManager(context: Context) : ViewModel() {
 
             Log.d(TAG, "parseCmd. extracted: ${extracted.hex()}")
 
-            if (extracted[0] == 0xed.toByte()) {
-                if (extracted[1] == 0xa0.toByte()) {
-                    if (extracted[2] == 0x01.toByte() && extracted[3] == 0x71.toByte()) {
-                        Log.d(TAG, "parseCmd. ModeType.PLAY_MODE")
+            if (extracted.contentEquals(cmdPlayModeRx)) {
+                Log.d(TAG, "parseCmd. ModeType.PLAY_MODE")
+                listenerMode(ModeType.PLAY_MODE)
+            } else if (extracted.contentEquals(cmdMeasurementModeRx)) {
+                Log.d(TAG, "parseCmd. ModeType.MEASUREMENT_MODE")
+                listenerMode(ModeType.MEASUREMENT_MODE)
+            } else if (extracted.contentEquals(cmdEqModeDefaultRx)) {
+                Log.d(TAG, "parseCmd. EqModeType.EQ_MODE_DEFAULT")
+                listenerEqMode(EqModeType.EQ_MODE_DEFAULT)
+            } else if (extracted.contentEquals(cmdEqModeUser1Rx)) {
+                Log.d(TAG, "parseCmd. EqModeType.EQ_MODE_USER1")
+                listenerEqMode(EqModeType.EQ_MODE_USER1)
+            } else if (extracted.contentEquals(cmdEqModeUser2Rx)) {
+                Log.d(TAG, "parseCmd. EqModeType.EQ_MODE_USER2")
+                listenerEqMode(EqModeType.EQ_MODE_USER2)
+            } else {
+                if(extracted[0] == cmdGetEqModeRx[0] && extracted[1] == cmdGetEqModeRx[1] && extracted[3] == cmdGetEqModeRx[3]) {
+                    val eqMode = extracted[2] - cmdGetEqModeRx[2]
+                    Log.d(TAG, "parseCmd. getEQMode. received:$eqMode eqMode:$eqMode")
 
-                        listenerMode(ModeType.PLAY_MODE)
-                    } else if (extracted[2] == 0x02.toByte() && extracted[3] == 0x70.toByte()) {
-                        Log.d(TAG, "parseCmd. ModeType.MEASUREMENT_MODE")
-
-                        listenerMode(ModeType.MEASUREMENT_MODE)
-                    } else {
-                        Toast.makeText(context, "UNKNOWN: ${extracted.hex()}", Toast.LENGTH_SHORT).show()
+                    when (eqMode) {
+                        0 -> listenerGetEqMode(EqModeType.EQ_MODE_DEFAULT)
+                        1 -> listenerGetEqMode(EqModeType.EQ_MODE_USER1)
+                        2 -> listenerGetEqMode(EqModeType.EQ_MODE_USER2)
                     }
-                }
-                else if (extracted[1] == 0xb0.toByte()) {
-                    if (extracted[2] == 0x01.toByte() && extracted[3] == 0x61.toByte()) {
-                        Log.d(TAG, "parseCmd. EqModeType.EQ_MODE_DEFAULT")
-
-                        listenerEqMode(EqModeType.EQ_MODE_DEFAULT)
-                    } else if (extracted[2] == 0x02.toByte() && extracted[3] == 0x60.toByte()) {
-                        Log.d(TAG, "parseCmd. EqModeType.EQ_MODE_USER1")
-
-                        listenerEqMode(EqModeType.EQ_MODE_USER1)
-                    } else if (extracted[2] == 0x03.toByte() && extracted[3] == 0x5f.toByte()) {
-                        Log.d(TAG, "parseCmd. EqModeType.EQ_MODE_USER2")
-
-                        listenerEqMode(EqModeType.EQ_MODE_USER2)
-                    } else if (extracted[3] == 0x5d.toByte()) {
-                        val eqMode = extracted[2] - 0x04
-                        Log.d(TAG, "parseCmd. getEQMode. received:$eqMode eqMode:$eqMode")
-
-                        when (eqMode) {
-                            0 -> listenerGetEqMode(EqModeType.EQ_MODE_DEFAULT)
-                            1 -> listenerGetEqMode(EqModeType.EQ_MODE_USER1)
-                            2 -> listenerGetEqMode(EqModeType.EQ_MODE_USER2)
-                        }
-                    }
-                    else {
-                        Toast.makeText(context, "UNKNOWN: ${extracted.hex()}", Toast.LENGTH_SHORT).show()
-                    }
-                }
-                else {
+                } else {
                     Toast.makeText(context, "UNKNOWN: ${extracted.hex()}", Toast.LENGTH_SHORT).show()
                 }
             }
@@ -467,30 +495,10 @@ class BleDeviceManager(context: Context) : ViewModel() {
 
         when(modeType) {
             ModeType.PLAY_MODE -> {
-                /*
-                 * App → BT {0xec, 0xa0, 0x01, 0x72}, BT → App Return {0xed, 0xa0, 0x01, 0x71}
-                 * 통신 성공하면 AI Music Box 위의 Mic Reverb LED 중 Low 가 켜짐
-                 */
-                val cmd = byteArrayOf(
-                    0xec.toByte(),
-                    0xa0.toByte(),
-                    0x01.toByte(),
-                    0x72.toByte()
-                )
-                write(cmd)
+                write(cmdPlayModeTx)
             }
             ModeType.MEASUREMENT_MODE -> {
-                /*
-                 * App → BT {0xec, 0xa0, 0x02, 0x71}, BT → App Return {0xed, 0xa0, 0x02, 0x70}
-                 * 통신 성공하면 AI Music Box 위의 Mic Reverb LED 중 Mid 가 켜짐
-                 */
-                val cmd = byteArrayOf(
-                    0xed.toByte(),
-                    0xa0.toByte(),
-                    0x01.toByte(),
-                    0x71.toByte()
-                )
-                write(cmd)
+                write(cmdMeasurementModeTx)
             }
         }
     }
@@ -501,61 +509,19 @@ class BleDeviceManager(context: Context) : ViewModel() {
 
         when(eqModeType) {
             EqModeType.EQ_MODE_DEFAULT -> {
-                /*
-                 * App → BT {0xec, 0xb0, 0x01, 0x62}, BT → App Return {0xed, 0xb0, 0x01, 0x61}
-                 * 통신 성공하면 AI Music Box 위의 Vocal Effect LED 중 Minions 가 켜짐
-                 */
-                val cmd = byteArrayOf(
-                    0xec.toByte(),
-                    0xb0.toByte(),
-                    0x01.toByte(),
-                    0x62.toByte()
-                )
-                write(cmd)
+                write(cmdEqModeDefaultTx)
             }
             EqModeType.EQ_MODE_USER1 -> {
-                /*
-                 * App → BT {0xec, 0xb0, 0x02, 0x61}, BT → App Return {0xed, 0xb0, 0x02, 0x60}
-                 * 통신 성공하면 AI Music Box 위의 Vocal Effect LED 중 Monster 가 켜짐
-                 */
-                val cmd = byteArrayOf(
-                    0xec.toByte(),
-                    0xb0.toByte(),
-                    0x02.toByte(),
-                    0x61.toByte()
-                )
-                write(cmd)
+                write(cmdEqModeUser1Tx)
             }
             EqModeType.EQ_MODE_USER2 -> {
-                /*
-                 * App → BT {0xec, 0xb0, 0x03, 0x60}, BT → App Return {0xed, 0xb0, 0x03, 0x5f}
-                 * 통신 성공하면 AI Music Box 위의 Vocal Effect LED 중 Monster 가 켜짐
-                 */
-                val cmd = byteArrayOf(
-                    0xec.toByte(),
-                    0xb0.toByte(),
-                    0x03.toByte(),
-                    0x60.toByte()
-                )
-                write(cmd)
+                write(cmdEqModeUser2Tx)
             }
         }
     }
 
     // Bluetooth control(BLE)을 통하여 4byte 제어 데이터를 전송하고 4byte 회신을 수신
     suspend fun getEQMode() {
-        /*
-         * return value : 0(default), 1(User1), 2(User2)
-         * App → BT {0xec, 0xb0, 0x05, 0x5e}, BT → App Return {0xed, 0xb0, 0x05, 0x5d}
-         * 통신 성공하면 AI Music Box 위의 Vocal Effect LED 중 Duet  켜짐
-         * 회신된 4 byte 데이터 중 (3번째 바이트-0x04) return 함 (현재 AI Music Box 펌웨어에서는 회신값이 고정으므로 return 값 항상 1임)
-         */
-        val cmd = byteArrayOf(
-            0xec.toByte(),
-            0xb0.toByte(),
-            0x05.toByte(),
-            0x5e.toByte()
-        )
-        write(cmd)
+        write(cmdGetEqModeTx)
     }
 }
