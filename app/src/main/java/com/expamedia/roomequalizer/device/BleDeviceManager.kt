@@ -530,6 +530,9 @@ class BleDeviceManager(context: Context) : ViewModel() {
         write(cmdGetEqModeTx)
     }
 
+    /**
+     * EQ 모드 및 IIR 계수(Coefficients) 데이터를 장치로 전송
+     */
     suspend fun saveEQMode(eqModeType: EqModeType, IIRcoef: FloatArray) {
         val byteArray = ByteBuffer.allocate(IIRcoef.size * 4).apply {
             order(ByteOrder.LITTLE_ENDIAN)

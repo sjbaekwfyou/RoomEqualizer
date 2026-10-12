@@ -1,6 +1,6 @@
 #include <jni.h>
 #include <string>
-#include "expamedia/expamedia.h"
+#include "expamedia.h"
 
 extern "C"
 JNIEXPORT void JNICALL
