@@ -203,12 +203,16 @@ class MainActivity : AppCompatActivity() {
             binding.btnBLERefresh.background = AppCompatResources.getDrawable(this, R.drawable.bg_button_connected)
             binding.btnPlayMode.background = AppCompatResources.getDrawable(this, R.drawable.bg_button_connected)
             binding.btnMeasurementMode.background = AppCompatResources.getDrawable(this, R.drawable.bg_button_connected)
+
+            binding.textViewBLEName.text = selectedDevice?.name
         }
         else {
             binding.btnBLEDisconnect.background = AppCompatResources.getDrawable(this, R.drawable.bg_button_not_connected)
             binding.btnBLERefresh.background = AppCompatResources.getDrawable(this, R.drawable.bg_button_not_connected)
             binding.btnPlayMode.background = AppCompatResources.getDrawable(this, R.drawable.bg_button_not_connected)
             binding.btnMeasurementMode.background = AppCompatResources.getDrawable(this, R.drawable.bg_button_not_connected)
+
+            binding.textViewBLEName.text = ""
         }
     }
 
