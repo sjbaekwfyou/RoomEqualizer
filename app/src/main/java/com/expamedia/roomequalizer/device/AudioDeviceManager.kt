@@ -151,6 +151,12 @@ class AudioDeviceManager(private val context: Context) {
             // 💡 2. 출력 스피커 선택: 블루투스 스피커가 연결되어 있으면 블루투스 스피커 사용, 없으면 내장 스피커 사용
             try {
                 val outputDevices = audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
+
+                Log.d(TAG, "Output Device count:${outputDevices.size}")
+                for (device in outputDevices) {
+                    Log.d(TAG, "    -> name: ${device.productName}, type: ${device.type}, id: ${device.id}")
+                }
+
                 var btSpeaker = outputDevices.firstOrNull { device ->
                     device.type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP
                 }
