@@ -144,6 +144,14 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.btnMeasurementMode.setOnClickListener {
+            if (!bleDeviceManager.isConnected()) {
+                Toast.makeText(
+                    this@MainActivity,
+                    getString(R.string.toast_ble_not_connected),
+                    Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
             lifecycleScope.launch {
                 bleDeviceManager.modeSetting(BleDeviceManager.ModeType.MEASUREMENT_MODE)
                 showPopupLayoutAudio()

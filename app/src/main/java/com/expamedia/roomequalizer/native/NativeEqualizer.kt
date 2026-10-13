@@ -156,6 +156,12 @@ object WavFileWriter {
             bos.flush()
         }
     }
+
+    fun getAppName(context: Context): String {
+        val packageManager = context.packageManager
+        val applicationInfo = context.applicationInfo
+        return packageManager.getApplicationLabel(applicationInfo).toString()
+    }
 }
 
 class NativeEqualizer(val context: Context, val chirp: FloatArray) {
@@ -181,7 +187,7 @@ class NativeEqualizer(val context: Context, val chirp: FloatArray) {
     public fun ambientLevel(result: FloatArray): Int {
         val dir = (context as AppCompatActivity).getExternalFilesDir(Environment.DIRECTORY_MUSIC)
         if (dir != null) {
-            WavFileWriter.saveWavToPublicMusic(context, "Expamedia - ambient.wav", result)
+            WavFileWriter.saveWavToPublicMusic(context, "${WavFileWriter.getAppName(context)} - ambient.wav", result)
         }
 
         return nativeAmbientLevel(FS, result)
@@ -190,8 +196,8 @@ class NativeEqualizer(val context: Context, val chirp: FloatArray) {
     public fun calculatePEQ(chirp: FloatArray, result: FloatArray, IIRcoef: FloatArray): Pair<Int, Int> {
         val dir = (context as AppCompatActivity).getExternalFilesDir(Environment.DIRECTORY_MUSIC)
         if (dir != null) {
-            WavFileWriter.saveWavToPublicMusic(context, "Expamedia - chirp.wav", chirp)
-            WavFileWriter.saveWavToPublicMusic(context, "Expamedia - record.wav", result)
+            WavFileWriter.saveWavToPublicMusic(context, "${WavFileWriter.getAppName(context)} - chirp.wav", chirp)
+            WavFileWriter.saveWavToPublicMusic(context, "${WavFileWriter.getAppName(context)} - record.wav", result)
         }
 
         val dbValue = IntArray(1) // 값을 담아올 1개짜리 배열 생성
