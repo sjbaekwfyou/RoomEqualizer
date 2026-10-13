@@ -151,13 +151,17 @@ class AudioDeviceManager(private val context: Context) {
             // 💡 2. 출력 스피커 선택: 블루투스 스피커가 연결되어 있으면 블루투스 스피커 사용, 없으면 내장 스피커 사용
             try {
                 val outputDevices = audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
-                val btSpeaker = outputDevices.firstOrNull { device ->
-                    device.type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP ||
-                            device.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
-                            (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && (
-                                    device.type == AudioDeviceInfo.TYPE_BLE_SPEAKER ||
-                                            device.type == AudioDeviceInfo.TYPE_BLE_HEADSET
-                                    ))
+                var btSpeaker = outputDevices.firstOrNull { device ->
+                    device.type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP
+                }
+                if (btSpeaker == null) {
+                    btSpeaker = outputDevices.firstOrNull { device ->
+                        device.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
+                        (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && (
+                                device.type == AudioDeviceInfo.TYPE_BLE_SPEAKER ||
+                                        device.type == AudioDeviceInfo.TYPE_BLE_HEADSET
+                                ))
+                    }
                 }
 
                 if (btSpeaker != null) {
