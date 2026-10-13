@@ -97,6 +97,11 @@ class AudioDeviceManager(private val context: Context) {
             try {
                 val inputDevices = audioManager.getDevices(AudioManager.GET_DEVICES_INPUTS)
 
+                Log.d(TAG, "Input Device count:${inputDevices.size}")
+                for (device in inputDevices) {
+                    Log.d(TAG, "    -> name: ${device.productName}, type: ${device.type}, id: ${device.id}")
+                }
+
                 val usbMic = inputDevices.firstOrNull { device ->
                     device.type == AudioDeviceInfo.TYPE_USB_DEVICE ||
                             device.type == AudioDeviceInfo.TYPE_USB_ACCESSORY ||
