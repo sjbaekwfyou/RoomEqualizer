@@ -132,7 +132,7 @@ class BleDeviceManager(context: Context) : ViewModel() {
     @OptIn(ExperimentalUnsignedTypes::class)
     val cmdGetEqModeTx = ubyteArrayOf(0xecu, 0xb0u, 0x05u, 0x5eu).toByteArray()
     @OptIn(ExperimentalUnsignedTypes::class)
-    val cmdGetEqModeRx = ubyteArrayOf(0xecu, 0xb0u, 0x04u, 0x5du).toByteArray()
+    val cmdGetEqModeRx = ubyteArrayOf(0xedu, 0xb0u, 0x04u, 0x5du).toByteArray()
 
     private fun ByteArray.hex(): String = joinToString(" ") { "%02X".format(it) }
 
