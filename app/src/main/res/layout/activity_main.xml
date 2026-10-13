@@ -41,7 +41,7 @@
                 android:layout_gravity="center"
                 android:layout_marginRight="10dp"
                 android:layout_weight="4"
-                android:background="@drawable/bg_button"
+                android:background="@drawable/bg_button_connected"
                 android:text="@string/btn_ble_scan"
                 android:textColor="@color/btn_text_color" />
 
@@ -51,7 +51,7 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:layout_weight="5"
-                android:background="@drawable/bg_button"
+                android:background="@drawable/bg_button_not_connected"
                 android:text="@string/btn_ble_disconnect"
                 android:textColor="@color/btn_text_color" />
 
@@ -62,7 +62,7 @@
                 android:layout_gravity="center"
                 android:layout_marginLeft="10dp"
                 android:layout_weight="4"
-                android:background="@drawable/bg_button"
+                android:background="@drawable/bg_button_not_connected"
                 android:text="@string/btn_ble_refresh"
                 android:textColor="@color/btn_text_color" />
         </LinearLayout>
@@ -95,7 +95,7 @@
                 android:layout_alignParentTop="true"
                 android:layout_centerHorizontal="true"
                 android:layout_weight="1"
-                android:background="@drawable/bg_button"
+                android:background="@drawable/bg_button_not_connected"
                 android:text="@string/play_mode"
                 android:textColor="@color/btn_text_color" />
         </LinearLayout>
@@ -198,7 +198,7 @@
             android:layout_gravity="center"
             android:layout_marginLeft="16dp"
             android:layout_marginRight="16dp"
-            android:background="@drawable/bg_button"
+            android:background="@drawable/bg_button_not_connected"
             android:text="@string/measurement_mode"
             android:textColor="@color/btn_text_color" />
     </LinearLayout>
@@ -220,7 +220,7 @@
             android:layout_gravity="center"
             android:layout_marginLeft="16dp"
             android:layout_marginRight="16dp"
-            android:background="@drawable/bg_button"
+            android:background="@drawable/bg_button_connected"
             android:text="@string/exit"
             android:textColor="@color/btn_text_color" />
     </LinearLayout>

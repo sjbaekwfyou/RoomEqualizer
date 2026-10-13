@@ -171,7 +171,7 @@ class NativeEqualizer(val context: Context, val chirp: FloatArray) {
 
     external fun nativeGenerateESS(FS: Float, ESS_LENGTH: Int, chirp: FloatArray)
     external fun nativeAmbientLevel(FS: Float, result: FloatArray): Int
-    external fun nativeCalculatePEQ(FS: Float, ESS_LENGTH: Int, N_PEQ: Int, F_MIN: Float, F_MAX: Float, G_MAX: Float, F_HPF: Float, chirp: FloatArray, result: FloatArray, IIRcoef: FloatArray): Int;
+    external fun nativeCalculatePEQ(FS: Float, ESS_LENGTH: Int, N_PEQ: Int, F_MIN: Float, F_MAX: Float, G_MAX: Float, F_HPF: Float, chirp: FloatArray, result: FloatArray, IIRcoef: FloatArray, outDBValue: IntArray): Int;
 
     init {
         System.loadLibrary("roomequalizer")
@@ -187,13 +187,16 @@ class NativeEqualizer(val context: Context, val chirp: FloatArray) {
         return nativeAmbientLevel(FS, result)
     }
 
-    public fun calculatePEQ(chirp: FloatArray, result: FloatArray, IIRcoef: FloatArray): Int {
+    public fun calculatePEQ(chirp: FloatArray, result: FloatArray, IIRcoef: FloatArray): Pair<Int, Int> {
         val dir = (context as AppCompatActivity).getExternalFilesDir(Environment.DIRECTORY_MUSIC)
         if (dir != null) {
             WavFileWriter.saveWavToPublicMusic(context, "Expamedia - chirp.wav", chirp)
             WavFileWriter.saveWavToPublicMusic(context, "Expamedia - record.wav", result)
         }
 
-        return nativeCalculatePEQ(FS, ESS_LENGTH, N_PEQ, F_MIN, F_MAX, G_MAX, F_HPF, chirp, result, IIRcoef)
+        val dbValue = IntArray(1) // 값을 담아올 1개짜리 배열 생성
+        val calculatedResult = nativeCalculatePEQ(FS, ESS_LENGTH, N_PEQ, F_MIN, F_MAX, G_MAX, F_HPF, chirp, result, IIRcoef, dbValue)
+
+        return Pair(calculatedResult, dbValue[0])
     }
 }

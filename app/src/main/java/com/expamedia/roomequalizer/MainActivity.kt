@@ -7,6 +7,7 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.WindowManager
 import android.widget.Toast
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -87,6 +88,8 @@ class MainActivity : AppCompatActivity() {
 
             bleDeviceManager.disconnect()
             selectedDevice = null;
+
+            showConnectivity(false)
         }
 
         binding.btnBLERefresh.setOnClickListener {
@@ -109,6 +112,8 @@ class MainActivity : AppCompatActivity() {
             if (selectedDevice != null) {
                 connectBLE()
             }
+
+            showConnectivity(false)
         }
 
         binding.btnPlayMode.setOnClickListener {
@@ -177,6 +182,28 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun showInitBLE() {
+        lifecycleScope.launch(Dispatchers.Main) {
+            bleDeviceManager.modeSetting(BleDeviceManager.ModeType.PLAY_MODE)
+            bleDeviceManager.getEQMode()
+        }
+    }
+
+    private fun showConnectivity(connected: Boolean) {
+        if (connected) {
+            binding.btnBLEDisconnect.background = AppCompatResources.getDrawable(this, R.drawable.bg_button_connected)
+            binding.btnBLERefresh.background = AppCompatResources.getDrawable(this, R.drawable.bg_button_connected)
+            binding.btnPlayMode.background = AppCompatResources.getDrawable(this, R.drawable.bg_button_connected)
+            binding.btnMeasurementMode.background = AppCompatResources.getDrawable(this, R.drawable.bg_button_connected)
+        }
+        else {
+            binding.btnBLEDisconnect.background = AppCompatResources.getDrawable(this, R.drawable.bg_button_not_connected)
+            binding.btnBLERefresh.background = AppCompatResources.getDrawable(this, R.drawable.bg_button_not_connected)
+            binding.btnPlayMode.background = AppCompatResources.getDrawable(this, R.drawable.bg_button_not_connected)
+            binding.btnMeasurementMode.background = AppCompatResources.getDrawable(this, R.drawable.bg_button_not_connected)
+        }
+    }
+
     private fun showPopupLayoutAudio() {
         popupLayout2.showMessage1(
             listenerOK = {
@@ -207,6 +234,8 @@ class MainActivity : AppCompatActivity() {
                 bleDeviceManager.connectToDevice(device, connectionResult = { isConnected ->
                     lifecycleScope.launch(Dispatchers.Main) {
                         if (!isConnected) {
+                            showConnectivity(false)
+
                             Toast.makeText(
                                 this@MainActivity,
                                 getString(R.string.alert_bluetooth_connection_failed),
@@ -224,13 +253,14 @@ class MainActivity : AppCompatActivity() {
                     }
                 }, connectionReady = {
                     lifecycleScope.launch(Dispatchers.Main) {
+                        showConnectivity(true)
+                        showInitBLE()
+
                         Toast.makeText(
                             this@MainActivity,
                             getString(R.string.toast_bluetooth_service_ready),
                             Toast.LENGTH_SHORT
                         ).show()
-
-                        bleDeviceManager.getEQMode()
                     }
                 }, receiveCallback = { receivedData ->
                     lifecycleScope.launch(Dispatchers.Main) {
@@ -302,7 +332,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startMeasurement() {
-        fun completeCalculatePEQ(chirp: FloatArray, result: FloatArray, IIRcoef: FloatArray, value: Int): Boolean {
+        fun completeCalculatePEQ(chirp: FloatArray, result: FloatArray, IIRcoef: FloatArray, value: Int, dbValue: Int): Boolean {
             when (value) {
                 0 -> {
                     popupLayout3.show { eqUser ->
@@ -317,13 +347,15 @@ class MainActivity : AppCompatActivity() {
                                 lifecycleScope.launch {
                                     bleDeviceManager.saveEQMode(BleDeviceManager.EqModeType.EQ_MODE_USER1, IIRcoef)
                                 }
-                                binding.radioEQUser1.isChecked = true
+                                showInitBLE()
+                                //binding.radioEQUser1.isChecked = true
                             }
                             PopupLayout3.EqUser.User2 -> {
                                 lifecycleScope.launch {
                                     bleDeviceManager.saveEQMode(BleDeviceManager.EqModeType.EQ_MODE_USER2, IIRcoef)
                                 }
-                                binding.radioEQUser2.isChecked = true
+                                showInitBLE()
+                                //binding.radioEQUser2.isChecked = true
                             }
                         }
                         false
@@ -338,14 +370,14 @@ class MainActivity : AppCompatActivity() {
                     return true
                 }
                 2 -> {
-                    popupLayout2.showMessage6 {
+                    popupLayout2.showMessage6(dbValue) {
                         startMeasurement()
                         true
                     }
                     return true
                 }
                 3 -> {
-                    popupLayout2.showMessage7 {
+                    popupLayout2.showMessage7(dbValue) {
                         startMeasurement()
                         true
                     }
@@ -361,10 +393,10 @@ class MainActivity : AppCompatActivity() {
                 listenerCanceled = {
                     isCanceled = true
                 },
-                listener = { value, IIRcoef ->
+                listener = { value, dbValue, IIRcoef ->
                     if (isCanceled) return@showMessage3 false
 
-                    return@showMessage3 completeCalculatePEQ(chirp, result, IIRcoef, value)
+                    return@showMessage3 completeCalculatePEQ(chirp, result, IIRcoef, value, dbValue)
                 }
             )
         }

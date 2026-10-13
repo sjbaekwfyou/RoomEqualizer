@@ -9,13 +9,6 @@
 #include <cstdint>
 #include <algorithm>
 
-static void WriteLittleEndian(std::ofstream& file, uint32_t value, size_t size) {
-    for (size_t i = 0; i < size; ++i) {
-        char byte = static_cast<char>((value >> (i * 8)) & 0xFF);
-        file.write(&byte, 1);
-    }
-}
-
 void GenerateESS(float FS, int ESS_LENGTH, float* chirp) {
     //test code
     float f1 = 20.0;
@@ -38,10 +31,15 @@ int AmbientLevel(float FS, float* result, size_t resultLength) {
     //return 1;   //NG
 }
 
-int CalculatePEQ(float FS, int ESS_LENGTH, int N_PEQ, float F_MIN, float F_MAX, float G_MAX, float F_HPF, float* chirp, float* result, float* IIRcoef) {
+int CalculatePEQ(float FS, int ESS_LENGTH, int N_PEQ, float F_MIN, float F_MAX, float G_MAX, float F_HPF, float* chirp, float* result, float* IIRcoef, int* outDBValue) {
     std::this_thread::sleep_for(std::chrono::seconds(1));
     static int l_ret = 0;
     int ret = l_ret++;
+
+    if (outDBValue) {
+        *outDBValue = 10;
+    }
+
     return ret % 4;
     //return 0;    //success
     //return 1;    //error1

@@ -96,7 +96,7 @@ class BleDeviceManager(context: Context) : ViewModel() {
      * 통신 성공하면 AI Music Box 위의 Mic Reverb LED 중 Mid 가 켜짐
      */
     @OptIn(ExperimentalUnsignedTypes::class)
-    val cmdMeasurementModeTx = ubyteArrayOf(0xedu, 0xa0u, 0x01u, 0x71u).toByteArray()
+    val cmdMeasurementModeTx = ubyteArrayOf(0xecu, 0xa0u, 0x02u, 0x71u).toByteArray()
     @OptIn(ExperimentalUnsignedTypes::class)
     val cmdMeasurementModeRx = ubyteArrayOf(0xedu, 0xa0u, 0x02u, 0x70u).toByteArray()
     /*
@@ -549,7 +549,7 @@ class BleDeviceManager(context: Context) : ViewModel() {
                 // TODO: write byteArray to user2
             }
             EqModeType.EQ_MODE_DEFAULT -> {
-                Log.d(TAG, "saveEQMode. User3. not supported")
+                Log.d(TAG, "saveEQMode. Default. not supported")
             }
         }
     }

@@ -69,13 +69,15 @@ Java_com_expamedia_roomequalizer_native_NativeEqualizer_nativeCalculatePEQ(
         jfloat F_HPF,
         jfloatArray chirp,
         jfloatArray result,
-        jfloatArray IIRcoef
+        jfloatArray IIRcoef,
+        jintArray outDBValue
 ) {
     jint ret = 1;
 
     jfloat *chirpBuffer = env->GetFloatArrayElements(chirp, nullptr);
     jfloat *resultBuffer = env->GetFloatArrayElements(result, nullptr);
     jfloat *IIRcoefBuffer = env->GetFloatArrayElements(IIRcoef, nullptr);
+    jint *outDBValueBuffer = env->GetIntArrayElements(outDBValue, nullptr);
 
     if (!chirpBuffer) {
         LOGE("CalculatePEQ. chirpBuffer is null.");
@@ -101,7 +103,7 @@ Java_com_expamedia_roomequalizer_native_NativeEqualizer_nativeCalculatePEQ(
             LOGE("CalculatePEQ. IIRcoef size is not equal to ESS_LENGTH. [%d vs %d]", ESS_LENGTH, IIRcoefLength);
         }
         else {
-            ret = CalculatePEQ(FS, ESS_LENGTH, N_PEQ, F_MIN, F_MAX, G_MAX, F_HPF, chirpBuffer, resultBuffer, IIRcoefBuffer);
+            ret = CalculatePEQ(FS, ESS_LENGTH, N_PEQ, F_MIN, F_MAX, G_MAX, F_HPF, chirpBuffer, resultBuffer, IIRcoefBuffer, outDBValueBuffer);
             LOGD("CalculatePEQ. ret:%d", ret);
         }
     }
@@ -114,6 +116,9 @@ Java_com_expamedia_roomequalizer_native_NativeEqualizer_nativeCalculatePEQ(
     }
     if(IIRcoefBuffer) {
         env->ReleaseFloatArrayElements(IIRcoef, IIRcoefBuffer, 0);
+    }
+    if(outDBValueBuffer) {
+        env->ReleaseIntArrayElements(outDBValue, outDBValueBuffer, 0);
     }
     return ret;
 }

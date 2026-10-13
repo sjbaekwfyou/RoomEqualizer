@@ -11,5 +11,5 @@ void GenerateESS(float FS, int ESS_LENGTH, float* chirp);
 
 int AmbientLevel(float FS, float* result, size_t resultLength);
 
-int CalculatePEQ(float FS, int ESS_LENGTH, int N_PEQ, float F_MIN, float F_MAX, float G_MAX, float F_HPF, float* chirp, float* result, float* IIRcoef);
+int CalculatePEQ(float FS, int ESS_LENGTH, int N_PEQ, float F_MIN, float F_MAX, float G_MAX, float F_HPF, float* chirp, float* result, float* IIRcoef, int* outDBValue);
 

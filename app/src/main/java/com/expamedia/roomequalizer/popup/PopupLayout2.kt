@@ -29,19 +29,18 @@ class PopupLayout2(private val context: Context, private val audioDeviceManager:
 
     enum class MessageType(
         @param:DrawableRes val colorBackground: Int,
-        @param:StringRes val tvMessage: Int,
         @param:StringRes val btMessage: Int,
         val btVisibility: Int,
         val buttonType: ButtonType
     ) {
-        NONE(R.color.white, R.string.no_message, R.string.no_message, View.GONE, ButtonType.NONE),
-        Message1(R.drawable.bg_popup_white, R.string.noti_message1, R.string.no_message, View.GONE, ButtonType.NONE),
-        Message2(R.drawable.bg_popup_white, R.string.noti_message2, R.string.quit, View.VISIBLE, ButtonType.QUIT),
-        Message3(R.drawable.bg_popup_white, R.string.noti_message3, R.string.quit, View.VISIBLE, ButtonType.QUIT),
-        Message4(R.drawable.bg_popup_orange, R.string.noti_message4, R.string.ok, View.VISIBLE, ButtonType.OK),
-        Message5(R.drawable.bg_popup_orange, R.string.noti_message5, R.string.restart, View.VISIBLE, ButtonType.RESTART),
-        Message6(R.drawable.bg_popup_orange, R.string.noti_message6, R.string.restart, View.VISIBLE, ButtonType.RESTART),
-        Message7(R.drawable.bg_popup_orange, R.string.noti_message7, R.string.restart, View.VISIBLE, ButtonType.RESTART);
+        NONE(R.color.white, R.string.no_message, View.GONE, ButtonType.NONE),
+        Message1(R.drawable.bg_popup_white, R.string.no_message, View.GONE, ButtonType.NONE),
+        Message2(R.drawable.bg_popup_white, R.string.quit, View.VISIBLE, ButtonType.QUIT),
+        Message3(R.drawable.bg_popup_white, R.string.quit, View.VISIBLE, ButtonType.QUIT),
+        Message4(R.drawable.bg_popup_orange, R.string.ok, View.VISIBLE, ButtonType.OK),
+        Message5(R.drawable.bg_popup_orange, R.string.restart, View.VISIBLE, ButtonType.RESTART),
+        Message6(R.drawable.bg_popup_orange, R.string.restart, View.VISIBLE, ButtonType.RESTART),
+        Message7(R.drawable.bg_popup_orange, R.string.restart, View.VISIBLE, ButtonType.RESTART);
     }
 
    private val binding: PopupLayout2Binding by lazy {
@@ -59,11 +58,24 @@ class PopupLayout2(private val context: Context, private val audioDeviceManager:
 
     private var messageType: MessageType = MessageType.NONE
 
-    private fun setMessage(messageType: MessageType) {
+    private fun getTVMessage(messageType: MessageType, value: Int): String {
+        when (messageType) {
+            MessageType.NONE -> return ""
+            MessageType.Message1 -> return context.getString(R.string.noti_message1)
+            MessageType.Message2 -> return context.getString(R.string.noti_message2)
+            MessageType.Message3 -> return context.getString(R.string.noti_message3)
+            MessageType.Message4 -> return context.getString(R.string.noti_message4)
+            MessageType.Message5 -> return context.getString(R.string.noti_message5)
+            MessageType.Message6 -> return "Please increase main volume by $value dB and try again."
+            MessageType.Message7 -> return "Please decrease main volume by $value dB and try again."
+        }
+    }
+
+    private fun setMessage(messageType: MessageType, value: Int) {
         this.messageType = messageType
 
         binding.background.background = AppCompatResources.getDrawable(context, this.messageType.colorBackground)
-        binding.tvMessage.text = context.getString(this.messageType.tvMessage)
+        binding.tvMessage.text = getTVMessage(this.messageType, value)
         binding.btnButtonID.visibility = this.messageType.btVisibility
         binding.btnButtonID.text = context.getString(this.messageType.btMessage)
     }
@@ -83,7 +95,7 @@ class PopupLayout2(private val context: Context, private val audioDeviceManager:
             dialog.show()
         }
 
-        setMessage(MessageType.Message1)
+        setMessage(MessageType.Message1,0)
 
         (context as? LifecycleOwner)?.lifecycleScope?.launch(Dispatchers.IO) {
             val ambientRecoding = FloatArray(24000)
@@ -119,7 +131,7 @@ class PopupLayout2(private val context: Context, private val audioDeviceManager:
             dismiss()
         }
 
-        setMessage(MessageType.Message2)
+        setMessage(MessageType.Message2,0)
 
         readRecordBuffer(chirp) { result ->
             if(!isCanceled) {
@@ -131,7 +143,7 @@ class PopupLayout2(private val context: Context, private val audioDeviceManager:
         }
     }
 
-    fun showMessage3(chirp: FloatArray, result: FloatArray, listenerCanceled: () -> Unit, listener: (value: Int, IIRcoef: FloatArray) -> Boolean) {
+    fun showMessage3(chirp: FloatArray, result: FloatArray, listenerCanceled: () -> Unit, listener: (value: Int, dbValue: Int, IIRcoef: FloatArray) -> Boolean) {
         if (!dialog.isShowing) {
             dialog.show()
         }
@@ -143,17 +155,17 @@ class PopupLayout2(private val context: Context, private val audioDeviceManager:
 
         (context as? LifecycleOwner)?.lifecycleScope?.launch(Dispatchers.IO) {
             val IIRcoef = FloatArray(chirp.size)
-            val value = nativeEqualizer.calculatePEQ(chirp, result, IIRcoef)
+            val (value, dbValue) = nativeEqualizer.calculatePEQ(chirp, result, IIRcoef)
 
             withContext(Dispatchers.Main) {
-                if (listener.invoke(value, IIRcoef)) {
+                if (listener.invoke(value, dbValue, IIRcoef)) {
                     return@withContext
                 }
                 dismiss()
             }
         }
 
-        setMessage(MessageType.Message3)
+        setMessage(MessageType.Message3,0)
     }
 
     fun showMessage4(listener: () -> Boolean) {
@@ -168,7 +180,7 @@ class PopupLayout2(private val context: Context, private val audioDeviceManager:
             dismiss()
         }
 
-        setMessage(MessageType.Message4)
+        setMessage(MessageType.Message4,0)
     }
 
     fun showMessage5(listener: () -> Boolean) {
@@ -183,10 +195,10 @@ class PopupLayout2(private val context: Context, private val audioDeviceManager:
             dismiss()
         }
 
-        setMessage(MessageType.Message5)
+        setMessage(MessageType.Message5,0)
     }
 
-    fun showMessage6(listener: () -> Boolean) {
+    fun showMessage6(dbValue: Int, listener: () -> Boolean) {
         if (!dialog.isShowing) {
             dialog.show()
         }
@@ -198,10 +210,10 @@ class PopupLayout2(private val context: Context, private val audioDeviceManager:
             dismiss()
         }
 
-        setMessage(MessageType.Message6)
+        setMessage(MessageType.Message6, dbValue)
     }
 
-    fun showMessage7(listener: () -> Boolean) {
+    fun showMessage7(dbValue: Int, listener: () -> Boolean) {
         if (!dialog.isShowing) {
             dialog.show()
         }
@@ -213,7 +225,7 @@ class PopupLayout2(private val context: Context, private val audioDeviceManager:
             dismiss()
         }
 
-        setMessage(MessageType.Message7)
+        setMessage(MessageType.Message7, dbValue)
     }
 
     fun dismiss() {
