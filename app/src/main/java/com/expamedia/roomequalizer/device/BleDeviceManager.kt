@@ -56,7 +56,6 @@ class BleDeviceManager(context: Context) : ViewModel() {
     private final val TAG = "BleDeviceManager"
     private final val TAG_BLE_DATA_RX = "BleDataRx"
     private final val TAG_BLE_DATA_TX = "BleDataTx"
-    private val parseCmdDatas = mutableListOf<Byte>()
 
     // ✅ ESP32 쪽에서 사용한 Service / Characteristic UUID 로 교체해야 함
     private val SERVICE_UUID = UUID.fromString("e49a25f8-f69a-11e8-8eb2-f2801f1b9fd1")
@@ -82,6 +81,8 @@ class BleDeviceManager(context: Context) : ViewModel() {
     private var timeoutJob: Job? = null
 
     val readyForList = AtomicBoolean(false)
+
+    private val parseCmdData = mutableListOf<Byte>()
 
     /*
      * App → BT {0xec, 0xa0, 0x01, 0x72}, BT → App Return {0xed, 0xa0, 0x01, 0x71}
@@ -138,7 +139,7 @@ class BleDeviceManager(context: Context) : ViewModel() {
 
     /** �� 스캔 시작 (10초 후 자동 중지) */
     @SuppressLint("MissingPermission")
-    fun startScan(scalCallback: (BleDevice) -> Unit) {
+    fun startScan(scaleCallback: (BleDevice) -> Unit) {
         val btAdapter = adapter ?: run {
             Log.e(TAG, "❌ BluetoothAdapter is null — BLE not supported on this device.")
             Toast.makeText(context, "This device does not support BLE.", Toast.LENGTH_SHORT).show()
@@ -147,11 +148,12 @@ class BleDeviceManager(context: Context) : ViewModel() {
 
         // ✅ 권한 체크 (Android 12+는 위치 권한 요구 X)
         val requiredPerms = buildList {
-            add(Manifest.permission.BLUETOOTH_SCAN)
-            add(Manifest.permission.BLUETOOTH_CONNECT)
-            // Android 11 이하만 위치 권한 필요
-            if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.R) {
-                add(Manifest.permission.ACCESS_FINE_LOCATION)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                add(Manifest.permission.BLUETOOTH_SCAN);
+                add(Manifest.permission.BLUETOOTH_CONNECT);
+            } else {
+                add(Manifest.permission.ACCESS_FINE_LOCATION);
+                add(Manifest.permission.ACCESS_COARSE_LOCATION);
             }
         }
 
@@ -199,7 +201,7 @@ class BleDeviceManager(context: Context) : ViewModel() {
                 _devices.value = discovered.values.toList()
                 Log.d(TAG, "Discovered: $name [$addr] RSSI:$rssi")
 
-                scalCallback.invoke(bleDevice)
+                scaleCallback.invoke(bleDevice)
             }
 
             override fun onBatchScanResults(results: MutableList<ScanResult>) {
@@ -211,7 +213,7 @@ class BleDeviceManager(context: Context) : ViewModel() {
                     val bleDevice = BleDevice("$name (RSSI:${r.rssi})", address)
                     discovered[address] = bleDevice
 
-                    scalCallback.invoke(bleDevice)
+                    scaleCallback.invoke(bleDevice)
                 }
                 _devices.value = discovered.values.toList()
                 Log.d(TAG, "Batch scan results: ${results.size}")
@@ -221,11 +223,12 @@ class BleDeviceManager(context: Context) : ViewModel() {
                 Log.e(TAG, "❌ Scan failed (errorCode=$errorCode)")
                 _scanState.value = ScanState.Error("Scan failed ($errorCode)")
                 when (errorCode) {
-                    1 -> Log.e(TAG, "SCAN_FAILED_ALREADY_STARTED — Already scanning")
-                    2 -> Log.e(TAG, "SCAN_FAILED_APPLICATION_REGISTRATION_FAILED — BLE permission/system issue")
-                    3 -> Log.e(TAG, "SCAN_FAILED_FEATURE_UNSUPPORTED — BLE scan not supported on this device")
-                    4 -> Log.e(TAG, "SCAN_FAILED_INTERNAL_ERROR — System BLE stack error (Reboot required)")
-                    5 -> Log.e(TAG, "SCAN_FAILED_OUT_OF_HARDWARE_RESOURCES — BLE buffer shortage")
+                    SCAN_FAILED_ALREADY_STARTED -> Log.e(TAG, "SCAN_FAILED_ALREADY_STARTED — Already scanning")
+                    SCAN_FAILED_APPLICATION_REGISTRATION_FAILED -> Log.e(TAG, "SCAN_FAILED_APPLICATION_REGISTRATION_FAILED — BLE permission/system issue")
+                    SCAN_FAILED_INTERNAL_ERROR -> Log.e(TAG, "SCAN_FAILED_INTERNAL_ERROR — System BLE stack error (Reboot required)")
+                    SCAN_FAILED_FEATURE_UNSUPPORTED -> Log.e(TAG, "SCAN_FAILED_FEATURE_UNSUPPORTED — BLE scan not supported on this device")
+                    SCAN_FAILED_OUT_OF_HARDWARE_RESOURCES -> Log.e(TAG, "SCAN_FAILED_OUT_OF_HARDWARE_RESOURCES — BLE buffer shortage")
+                    else -> Log.e(TAG, "Unknown")
                 }
                 stopScan()
             }
@@ -451,12 +454,12 @@ class BleDeviceManager(context: Context) : ViewModel() {
     }
 
     fun parseCmd(cmd: ByteArray, listenerMode: (ModeType) -> Unit, listenerEqMode: (EqModeType) -> Unit, listenerGetEqMode: (EqModeType) -> Unit) {
-        parseCmdDatas.addAll(cmd.toList())
+        parseCmdData.addAll(cmd.toList())
 
         //* App → BT {0xec, 0xb0, 0x05, 0x5e}, BT → App Return {0xed, 0xb0, 0x05, 0x5d}
-        while(parseCmdDatas.size >= 4) {
-            val extracted = parseCmdDatas.subList(0, 4).toByteArray()
-            parseCmdDatas.subList(0, 4).clear()
+        while(parseCmdData.size >= 4) {
+            val extracted = parseCmdData.subList(0, 4).toByteArray()
+            parseCmdData.subList(0, 4).clear()
 
             Log.d(TAG, "parseCmd. extracted: ${extracted.hex()}")
 

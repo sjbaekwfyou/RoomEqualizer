@@ -62,6 +62,8 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        showConnectivity(false)
+
         popupLayout1 = PopupLayout1(this)
         popupLayout2 = PopupLayout2(this, audioDeviceManager, nativeEqualizer)
         popupLayout3 = PopupLayout3(this)
@@ -190,7 +192,11 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun showInitBLE() {
+    /*
+     * 최초 BLE 상태
+     * 최초 BLE 연결 및 measurement 완료 후 호출
+     */
+    private fun firstInitBLE() {
         lifecycleScope.launch(Dispatchers.Main) {
             bleDeviceManager.modeSetting(BleDeviceManager.ModeType.PLAY_MODE)
             bleDeviceManager.getEQMode()
@@ -198,22 +204,28 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showConnectivity(connected: Boolean) {
+        var resId = R.drawable.bg_button_not_connected
+        var bleName = ""
+
         if (connected) {
-            binding.btnBLEDisconnect.background = AppCompatResources.getDrawable(this, R.drawable.bg_button_connected)
-            binding.btnBLERefresh.background = AppCompatResources.getDrawable(this, R.drawable.bg_button_connected)
-            binding.btnPlayMode.background = AppCompatResources.getDrawable(this, R.drawable.bg_button_connected)
-            binding.btnMeasurementMode.background = AppCompatResources.getDrawable(this, R.drawable.bg_button_connected)
-
-            binding.textViewBLEName.text = selectedDevice?.name
+            resId = R.drawable.bg_button_connected
+            bleName = selectedDevice?.name ?: ""
         }
-        else {
-            binding.btnBLEDisconnect.background = AppCompatResources.getDrawable(this, R.drawable.bg_button_not_connected)
-            binding.btnBLERefresh.background = AppCompatResources.getDrawable(this, R.drawable.bg_button_not_connected)
-            binding.btnPlayMode.background = AppCompatResources.getDrawable(this, R.drawable.bg_button_not_connected)
-            binding.btnMeasurementMode.background = AppCompatResources.getDrawable(this, R.drawable.bg_button_not_connected)
 
-            binding.textViewBLEName.text = ""
-        }
+        binding.btnBLEDisconnect.isEnabled = connected
+        binding.btnBLERefresh.isEnabled = connected
+        binding.btnPlayMode.isEnabled = connected
+        binding.radioEQDefault.isEnabled = connected
+        binding.radioEQUser1.isEnabled = connected
+        binding.radioEQUser2.isEnabled = connected
+        binding.btnMeasurementMode.isEnabled = connected
+
+        binding.btnBLEDisconnect.background = AppCompatResources.getDrawable(this, resId)
+        binding.btnBLERefresh.background = AppCompatResources.getDrawable(this, resId)
+        binding.btnPlayMode.background = AppCompatResources.getDrawable(this, resId)
+        binding.btnMeasurementMode.background = AppCompatResources.getDrawable(this, resId)
+
+        binding.textViewBLEName.text = bleName
     }
 
     private fun showPopupLayoutAudio() {
@@ -266,7 +278,7 @@ class MainActivity : AppCompatActivity() {
                 }, connectionReady = {
                     lifecycleScope.launch(Dispatchers.Main) {
                         showConnectivity(true)
-                        showInitBLE()
+                        firstInitBLE()
 
                         Toast.makeText(
                             this@MainActivity,
@@ -359,14 +371,14 @@ class MainActivity : AppCompatActivity() {
                                 lifecycleScope.launch {
                                     bleDeviceManager.saveEQMode(BleDeviceManager.EqModeType.EQ_MODE_USER1, IIRcoef)
                                 }
-                                showInitBLE()
+                                firstInitBLE()
                                 //binding.radioEQUser1.isChecked = true
                             }
                             PopupLayout3.EqUser.User2 -> {
                                 lifecycleScope.launch {
                                     bleDeviceManager.saveEQMode(BleDeviceManager.EqModeType.EQ_MODE_USER2, IIRcoef)
                                 }
-                                showInitBLE()
+                                firstInitBLE()
                                 //binding.radioEQUser2.isChecked = true
                             }
                         }

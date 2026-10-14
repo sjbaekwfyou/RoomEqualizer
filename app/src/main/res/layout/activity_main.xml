@@ -33,46 +33,39 @@
             android:layout_height="wrap_content"
             android:layout_marginLeft="16dp"
             android:layout_marginRight="16dp"
-            android:orientation="vertical">
+            android:orientation="horizontal">
 
-            <LinearLayout
-                android:layout_width="match_parent"
+            <android.widget.Button
+                android:id="@+id/btnBLEScan"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal">
+                android:layout_gravity="center"
+                android:layout_marginRight="10dp"
+                android:layout_weight="4"
+                android:background="@drawable/bg_button_connected"
+                android:text="@string/btn_ble_scan"
+                android:textColor="@color/btn_text_color" />
 
-                <android.widget.Button
-                    android:id="@+id/btnBLEScan"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    android:layout_marginRight="10dp"
-                    android:layout_weight="4"
-                    android:background="@drawable/bg_button_connected"
-                    android:text="@string/btn_ble_scan"
-                    android:textColor="@color/btn_text_color" />
+            <android.widget.Button
+                android:id="@+id/btnBLEDisconnect"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_weight="5"
+                android:background="@drawable/bg_button_connected"
+                android:text="@string/btn_ble_disconnect"
+                android:textColor="@color/btn_text_color" />
 
-                <android.widget.Button
-                    android:id="@+id/btnBLEDisconnect"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    android:layout_weight="5"
-                    android:background="@drawable/bg_button_not_connected"
-                    android:text="@string/btn_ble_disconnect"
-                    android:textColor="@color/btn_text_color" />
-
-                <android.widget.Button
-                    android:id="@+id/btnBLERefresh"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    android:layout_marginLeft="10dp"
-                    android:layout_weight="4"
-                    android:background="@drawable/bg_button_not_connected"
-                    android:text="@string/btn_ble_refresh"
-                    android:textColor="@color/btn_text_color" />
-
-            </LinearLayout>
+            <android.widget.Button
+                android:id="@+id/btnBLERefresh"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginLeft="10dp"
+                android:layout_weight="4"
+                android:background="@drawable/bg_button_connected"
+                android:text="@string/btn_ble_refresh"
+                android:textColor="@color/btn_text_color" />
 
         </LinearLayout>
 
@@ -82,6 +75,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
             android:gravity="center"
+            android:text="@string/title_ble_devices"
             android:textColor="@color/gray"
             android:textSize="16sp" />
 
@@ -99,101 +93,80 @@
         android:padding="16dp">
 
         <!-- 2구역 상단 버튼 -->
-        <LinearLayout
+        <android.widget.Button
+            android:id="@+id/btnPlayMode"
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_marginBottom="10dp"
-            android:layout_weight="4"
-            android:gravity="bottom">
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_button_connected"
+            android:text="@string/play_mode"
+            android:textColor="@color/btn_text_color" />
 
-            <android.widget.Button
-                android:id="@+id/btnPlayMode"
+        <RelativeLayout
+            android:id="@+id/containerEqGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp">
+
+            <!-- 1. 외곽선 박스 (타이틀 높이의 절반만큼 윗여백 주기) -->
+            <LinearLayout
+                android:id="@+id/boxEqBorder"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_alignParentTop="true"
-                android:layout_centerHorizontal="true"
-                android:layout_weight="1"
-                android:background="@drawable/bg_button_not_connected"
-                android:text="@string/play_mode"
-                android:textColor="@color/btn_text_color" />
-        </LinearLayout>
+                android:layout_marginTop="10dp"
+                android:background="@drawable/border_eq_group"
+                android:orientation="vertical"
+                android:paddingStart="12dp"
+                android:paddingTop="16dp"
+                android:paddingEnd="12dp"
+                android:paddingBottom="12dp">
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_marginTop="10dp"
-            android:layout_weight="5"
-            android:gravity="top">
-
-            <RelativeLayout
-                android:id="@+id/containerEqGroup"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_alignParentBottom="true"
-                android:layout_weight="1">
-
-                <!-- 1. 외곽선 박스 (타이틀 높이의 절반만큼 윗여백 주기) -->
-                <LinearLayout
-                    android:id="@+id/boxEqBorder"
+                <!-- 라디오 버튼 3개 -->
+                <RadioGroup
+                    android:id="@+id/radioGroupEqSelection"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:background="@drawable/border_eq_group"
-                    android:orientation="vertical"
-                    android:paddingStart="12dp"
-                    android:paddingTop="16dp"
-                    android:paddingEnd="12dp"
-                    android:paddingBottom="12dp">
+                    android:layout_height="48dp"
+                    android:orientation="horizontal">
 
-                    <!-- 라디오 버튼 3개 -->
-                    <RadioGroup
-                        android:id="@+id/radioGroupEqSelection"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal">
+                    <RadioButton
+                        android:id="@+id/radioEQDefault"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:checked="true"
+                        android:text="@string/eq_default" />
 
-                        <RadioButton
-                            android:id="@+id/radioEQDefault"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:checked="true"
-                            android:text="@string/eq_default" />
+                    <RadioButton
+                        android:id="@+id/radioEQUser1"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:text="@string/eq_user1" />
 
-                        <RadioButton
-                            android:id="@+id/radioEQUser1"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="@string/eq_user1" />
+                    <RadioButton
+                        android:id="@+id/radioEQUser2"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:text="@string/eq_user2" />
+                </RadioGroup>
+            </LinearLayout>
 
-                        <RadioButton
-                            android:id="@+id/radioEQUser2"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="@string/eq_user2" />
-                    </RadioGroup>
-                </LinearLayout>
+            <!-- 2. 외곽선 위 왼쪽 상단에 걸치는 타이틀 텍스트 -->
+            <TextView
+                android:id="@+id/tvEqSelectionTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentStart="true"
+                android:layout_marginStart="16dp"
+                android:background="?android:attr/windowBackground"
+                android:paddingStart="6dp"
+                android:paddingEnd="6dp"
+                android:text="@string/eq_selection"
+                android:textColor="@android:color/black"
+                android:textSize="13sp"
+                android:textStyle="bold" />
 
-                <!-- 2. 외곽선 위 왼쪽 상단에 걸치는 타이틀 텍스트 -->
-                <TextView
-                    android:id="@+id/tvEqSelectionTitle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_alignParentStart="true"
-                    android:layout_alignParentTop="true"
-                    android:layout_marginStart="16dp"
-                    android:background="?android:attr/windowBackground"
-                    android:paddingStart="6dp"
-                    android:paddingEnd="6dp"
-                    android:text="@string/eq_selection"
-                    android:textColor="@android:color/black"
-                    android:textSize="13sp"
-                    android:textStyle="bold" />
-
-            </RelativeLayout>
-        </LinearLayout>
+        </RelativeLayout>
 
         <!-- 2구역 하단: EQ Selection 외곽선 그룹 컨테이너 -->
     </LinearLayout>
@@ -216,7 +189,7 @@
             android:layout_gravity="center"
             android:layout_marginLeft="16dp"
             android:layout_marginRight="16dp"
-            android:background="@drawable/bg_button_not_connected"
+            android:background="@drawable/bg_button_connected"
             android:text="@string/measurement_mode"
             android:textColor="@color/btn_text_color" />
     </LinearLayout>

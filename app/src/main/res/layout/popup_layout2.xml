@@ -31,24 +31,17 @@
                 android:textSize="24sp" />
         </LinearLayout>
 
-        <LinearLayout
+        <android.widget.Button
+            android:id="@+id/btnButtonID"
             android:layout_width="match_parent"
             android:layout_height="0dp"
+            android:layout_marginLeft="20dp"
+            android:layout_marginTop="10dp"
+            android:layout_marginRight="20dp"
             android:layout_weight="1"
-            android:orientation="vertical">
-
-            <android.widget.Button
-                android:id="@+id/btnButtonID"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_marginLeft="20dp"
-                android:layout_marginTop="10dp"
-                android:layout_marginRight="20dp"
-                android:layout_weight="1"
-                android:background="@drawable/bg_button"
-                android:text="Button ID"
-                android:textColor="@color/btn_text_color" />
-        </LinearLayout>
+            android:background="@drawable/bg_button"
+            android:text="Button ID"
+            android:textColor="@color/btn_text_color" />
 
     </LinearLayout>
 
