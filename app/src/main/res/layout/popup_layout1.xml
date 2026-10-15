@@ -2,11 +2,12 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
+    android:layout_height="wrap_content"
     android:gravity="center"
     android:orientation="vertical">
 
     <LinearLayout
+        android:id="@+id/background"
         android:layout_width="match_parent"
         android:layout_height="600dp"
         android:layout_marginLeft="20dp"
@@ -18,7 +19,7 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="6"
+            android:layout_weight="7"
             android:orientation="horizontal">
 
             <TextView
@@ -36,29 +37,43 @@
             android:layout_weight="2"
             android:orientation="vertical">
 
-            <android.widget.Button
-                android:id="@+id/btnStartMeasurement"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
-                android:layout_marginLeft="20dp"
-                android:layout_marginRight="20dp"
-                android:layout_marginBottom="10dp"
                 android:layout_weight="1"
-                android:background="@drawable/bg_button"
-                android:text="@string/start"
-                android:textColor="@color/btn_text_color" />
+                android:gravity="center"
+                android:orientation="horizontal">
 
-            <android.widget.Button
-                android:id="@+id/btnCancelMeasurement"
+                <android.widget.Button
+                    android:id="@+id/btnStartMeasurement"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginLeft="20dp"
+                    android:layout_marginRight="20dp"
+                    android:background="@drawable/bg_button"
+                    android:gravity="center"
+                    android:text="@string/start"
+                    android:textColor="@color/btn_text_color" />
+            </LinearLayout>
+
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
-                android:layout_marginLeft="20dp"
-                android:layout_marginTop="10dp"
-                android:layout_marginRight="20dp"
                 android:layout_weight="1"
-                android:background="@drawable/bg_button"
-                android:text="@string/cancel"
-                android:textColor="@color/btn_text_color" />
+                android:gravity="center"
+                android:orientation="horizontal">
+
+                <android.widget.Button
+                    android:id="@+id/btnCancelMeasurement"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginLeft="20dp"
+                    android:layout_marginRight="20dp"
+                    android:background="@drawable/bg_button"
+                    android:text="@string/cancel"
+                    android:textColor="@color/btn_text_color" />
+            </LinearLayout>
+
         </LinearLayout>
 
     </LinearLayout>

@@ -59,15 +59,15 @@ class PopupLayout2(private val context: Context, private val audioDeviceManager:
     private var messageType: MessageType = MessageType.NONE
 
     private fun getTVMessage(messageType: MessageType, value: Int): String {
-        when (messageType) {
-            MessageType.NONE -> return ""
-            MessageType.Message1 -> return context.getString(R.string.noti_message1)
-            MessageType.Message2 -> return context.getString(R.string.noti_message2)
-            MessageType.Message3 -> return context.getString(R.string.noti_message3)
-            MessageType.Message4 -> return context.getString(R.string.noti_message4)
-            MessageType.Message5 -> return context.getString(R.string.noti_message5)
-            MessageType.Message6 -> return "Please increase main volume by $value dB and try again."
-            MessageType.Message7 -> return "Please decrease main volume by $value dB and try again."
+        return when (messageType) {
+            MessageType.NONE -> ""
+            MessageType.Message1 -> context.getString(R.string.noti_message1)
+            MessageType.Message2 -> context.getString(R.string.noti_message2)
+            MessageType.Message3 -> context.getString(R.string.noti_message3)
+            MessageType.Message4 -> context.getString(R.string.noti_message4)
+            MessageType.Message5 -> context.getString(R.string.noti_message5)
+            MessageType.Message6 -> "Please increase main volume by $value dB and try again."
+            MessageType.Message7 -> "Please decrease main volume by $value dB and try again."
         }
     }
 
@@ -120,7 +120,7 @@ class PopupLayout2(private val context: Context, private val audioDeviceManager:
         }
     }
 
-    fun showMessage2(chirp: FloatArray, listener: (result: FloatArray) -> Boolean) {
+    fun showMessage2(chirp: FloatArray, listenerQuit: () -> Boolean, listener: (result: FloatArray) -> Boolean) {
         if (!dialog.isShowing) {
             dialog.show()
         }
@@ -128,6 +128,11 @@ class PopupLayout2(private val context: Context, private val audioDeviceManager:
         var isCanceled = false
         binding.btnButtonID.setOnClickListener {
             isCanceled = true
+
+            if (listenerQuit.invoke()) {
+                return@setOnClickListener
+            }
+
             dismiss()
         }
 
@@ -143,13 +148,15 @@ class PopupLayout2(private val context: Context, private val audioDeviceManager:
         }
     }
 
-    fun showMessage3(chirp: FloatArray, result: FloatArray, listenerCanceled: () -> Unit, listener: (value: Int, dbValue: Int, IIRcoef: FloatArray) -> Boolean) {
+    fun showMessage3(chirp: FloatArray, result: FloatArray, listenerCanceled: () -> Boolean, listener: (value: Int, dbValue: Int, IIRcoef: FloatArray) -> Boolean) {
         if (!dialog.isShowing) {
             dialog.show()
         }
 
         binding.btnButtonID.setOnClickListener {
-            listenerCanceled.invoke()
+            if (listenerCanceled.invoke()) {
+                return@setOnClickListener
+            }
             dismiss()
         }
 

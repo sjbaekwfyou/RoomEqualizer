@@ -1,10 +1,12 @@
 package com.expamedia.roomequalizer
 
 import android.Manifest
+import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.appcompat.content.res.AppCompatResources
@@ -45,6 +47,28 @@ class MainActivity : AppCompatActivity() {
 
     private var receiveJob: Job? = null // 데이터 수신 루프 관리용 코루틴 Job
 
+    object ToastUtil {
+        private var toast: Toast? = null
+
+        /**
+         * 메세지를 즉시 덮어씌워 출력하는 싱글톤 Toast 메서드
+         * @param context Context (내부에서 applicationContext로 변환하여 메모리 누수 방지)
+         * @param message 표시할 텍스트 내용
+         * @param duration Toast.LENGTH_SHORT 또는 Toast.LENGTH_LONG (기본값: LENGTH_SHORT)
+         */
+        fun show(context: Context, message: String, duration: Int = Toast.LENGTH_SHORT) {
+            // 기존에 출력 중인 Toast가 있다면 텍스트만 업데이트 후 표시
+            toast?.cancel() // 진행 중인 토스트 즉시 취소
+
+            // ApplicationContext를 사용하여 Activity 메모리 누수 방지
+            val appContext = context.applicationContext
+
+            toast = Toast.makeText(appContext, message, duration).apply {
+                show()
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
@@ -62,7 +86,7 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        showConnectivity(false)
+        showBLEConnectivity(false)
 
         popupLayout1 = PopupLayout1(this)
         popupLayout2 = PopupLayout2(this, audioDeviceManager, nativeEqualizer)
@@ -77,35 +101,34 @@ class MainActivity : AppCompatActivity() {
 
         binding.btnBLEDisconnect.setOnClickListener {
             if (!bleDeviceManager.isConnected()) {
-                Toast.makeText(
+                ToastUtil.show(
                     this@MainActivity,
-                    getString(R.string.toast_ble_not_connected),
-                    Toast.LENGTH_SHORT).show()
+                    getString(R.string.toast_ble_not_connected)
+                )
             } else {
-                Toast.makeText(
+                ToastUtil.show(
                     this@MainActivity,
-                    getString(R.string.toast_ble_disconnected),
-                    Toast.LENGTH_SHORT).show()
+                    getString(R.string.toast_ble_disconnected)
+                )
             }
 
             bleDeviceManager.disconnect()
             selectedDevice = null;
 
-            showConnectivity(false)
+            showBLEConnectivity(false)
         }
 
         binding.btnBLERefresh.setOnClickListener {
             if (!bleDeviceManager.isConnected()) {
-                Toast.makeText(
+                ToastUtil.show(
                     this@MainActivity,
-                    getString(R.string.toast_ble_not_connected),
-                    Toast.LENGTH_SHORT).show()
+                    getString(R.string.toast_ble_not_connected)
+                )
             } else {
-                Toast.makeText(
+                ToastUtil.show(
                     this@MainActivity,
-                    getString(R.string.toast_ble_refreshed),
-                    Toast.LENGTH_SHORT
-                ).show()
+                    getString(R.string.toast_ble_refreshed)
+                )
             }
 
             bleDeviceManager.disconnect()
@@ -115,7 +138,7 @@ class MainActivity : AppCompatActivity() {
                 connectBLE()
             }
 
-            showConnectivity(false)
+            showBLEConnectivity(false)
         }
 
         binding.btnPlayMode.setOnClickListener {
@@ -147,16 +170,16 @@ class MainActivity : AppCompatActivity() {
 
         binding.btnMeasurementMode.setOnClickListener {
             if (!bleDeviceManager.isConnected()) {
-                Toast.makeText(
+                ToastUtil.show(
                     this@MainActivity,
-                    getString(R.string.toast_ble_not_connected),
-                    Toast.LENGTH_SHORT).show()
+                    getString(R.string.toast_ble_not_connected)
+                )
                 return@setOnClickListener
             }
 
             lifecycleScope.launch {
                 bleDeviceManager.modeSetting(BleDeviceManager.ModeType.MEASUREMENT_MODE)
-                showPopupLayoutAudio()
+                showPopupLayoutMeasurement()
             }
         }
 
@@ -197,13 +220,14 @@ class MainActivity : AppCompatActivity() {
      * 최초 BLE 연결 및 measurement 완료 후 호출
      */
     private fun firstInitBLE() {
+        Log.d("###", "firstInitBLE")
         lifecycleScope.launch(Dispatchers.Main) {
             bleDeviceManager.modeSetting(BleDeviceManager.ModeType.PLAY_MODE)
             bleDeviceManager.getEQMode()
         }
     }
 
-    private fun showConnectivity(connected: Boolean) {
+    private fun showBLEConnectivity(connected: Boolean) {
         var resId = R.drawable.bg_button_not_connected
         var bleName = ""
 
@@ -228,29 +252,12 @@ class MainActivity : AppCompatActivity() {
         binding.textViewBLEName.text = bleName
     }
 
-    private fun showPopupLayoutAudio() {
-        popupLayout2.showMessage1(
-            listenerOK = {
-                popupLayout1.show {
-                    startMeasurement()
-                }
-                false
-            },
-            listenerNG = {
-                popupLayout2.showMessage4 {
-                    false
-                }
-                true
-            }
-        )
-    }
-
     private fun connectBLE() {
         val deviceName = selectedDevice?.name ?: getString(R.string.unknown_device)
-        Toast.makeText(
+        ToastUtil.show(
             this,
-            "Connecting to $deviceName",
-            Toast.LENGTH_SHORT).show()
+            "Connecting to $deviceName"
+        )
 
         receiveJob?.cancel() // 기존 수신 작업이 있다면 취소
         receiveJob = lifecycleScope.launch(Dispatchers.IO) {
@@ -258,49 +265,44 @@ class MainActivity : AppCompatActivity() {
                 bleDeviceManager.connectToDevice(device, connectionResult = { isConnected ->
                     lifecycleScope.launch(Dispatchers.Main) {
                         if (!isConnected) {
-                            showConnectivity(false)
+                            showBLEConnectivity(false)
 
-                            Toast.makeText(
+                            ToastUtil.show(
                                 this@MainActivity,
-                                getString(R.string.alert_bluetooth_connection_failed),
-                                Toast.LENGTH_SHORT
-                            ).show()
+                                getString(R.string.alert_bluetooth_connection_failed)
+                            )
 
                             return@launch
                         }
 
-                        Toast.makeText(
+                        ToastUtil.show(
                             this@MainActivity,
-                            getString(R.string.toast_bluetooth_connected),
-                            Toast.LENGTH_SHORT
-                        ).show()
+                            getString(R.string.toast_bluetooth_connected)
+                        )
                     }
                 }, connectionReady = {
                     lifecycleScope.launch(Dispatchers.Main) {
-                        showConnectivity(true)
+                        showBLEConnectivity(true)
                         firstInitBLE()
 
-                        Toast.makeText(
+                        ToastUtil.show(
                             this@MainActivity,
-                            getString(R.string.toast_bluetooth_service_ready),
-                            Toast.LENGTH_SHORT
-                        ).show()
+                            getString(R.string.toast_bluetooth_service_ready)
+                        )
                     }
                 }, receiveCallback = { receivedData ->
                     lifecycleScope.launch(Dispatchers.Main) {
-                        //Toast.makeText(this@MainActivity, "\n[수신]: ${receivedData.size}", Toast.LENGTH_SHORT).show()
+                        //ToastUtil.show(this@MainActivity, "\n[수신]: ${receivedData.size}")
                         bleDeviceManager.parseCmd(receivedData, listenerMode = { modeType ->
-                            Toast.makeText(
+                            ToastUtil.show(
                                 this@MainActivity,
-                                "Mode set to $modeType",
-                                Toast.LENGTH_SHORT
-                            ).show()
+                                "Mode set to $modeType"
+                            )
                         }, listenerEqMode = { eqModeType ->
-                            Toast.makeText(
+                            ToastUtil.show(
                                 this@MainActivity,
-                                "EqMode set to $eqModeType",
-                                Toast.LENGTH_SHORT
-                            ).show()
+                                "EqMode set to $eqModeType"
+                            )
                         }, listenerGetEqMode = { eqModeType ->
                             when (eqModeType) {
                                 BleDeviceManager.EqModeType.EQ_MODE_DEFAULT -> binding.radioEQDefault.isChecked = true
@@ -355,36 +357,71 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun showPopupLayoutMeasurement() {
+        popupLayout2.showMessage1(
+            listenerOK = {
+                popupLayout1.show(
+                    listenerStart = {
+                        startMeasurement()
+                        false
+                    },
+                    listenerCancel = {
+                        firstInitBLE()
+                        false
+                    }
+                )
+                false
+            },
+            listenerNG = {
+                popupLayout2.showMessage4 {
+                    firstInitBLE()
+                    false
+                }
+                true
+            }
+        )
+    }
+
     private fun startMeasurement() {
-        fun completeCalculatePEQ(chirp: FloatArray, result: FloatArray, IIRcoef: FloatArray, value: Int, dbValue: Int): Boolean {
+        fun completeCalculatePEQ(
+            chirp: FloatArray,
+            result: FloatArray,
+            IIRcoef: FloatArray,
+            value: Int,
+            dbValue: Int
+        ): Boolean {
             when (value) {
                 0 -> {
                     popupLayout3.show { eqUser ->
                         when (eqUser) {
                             PopupLayout3.EqUser.Cancel -> {
-                                Toast.makeText(
+                                ToastUtil.show(
                                     this,
-                                    "CANCEL",
-                                    Toast.LENGTH_SHORT).show()
+                                    "CANCEL"
+                                )
                             }
                             PopupLayout3.EqUser.User1 -> {
                                 lifecycleScope.launch {
-                                    bleDeviceManager.saveEQMode(BleDeviceManager.EqModeType.EQ_MODE_USER1, IIRcoef)
+                                    bleDeviceManager.saveEQMode(
+                                        BleDeviceManager.EqModeType.EQ_MODE_USER1,
+                                        IIRcoef
+                                    )
                                 }
-                                firstInitBLE()
                                 //binding.radioEQUser1.isChecked = true
                             }
                             PopupLayout3.EqUser.User2 -> {
                                 lifecycleScope.launch {
-                                    bleDeviceManager.saveEQMode(BleDeviceManager.EqModeType.EQ_MODE_USER2, IIRcoef)
+                                    bleDeviceManager.saveEQMode(
+                                        BleDeviceManager.EqModeType.EQ_MODE_USER2,
+                                        IIRcoef
+                                    )
                                 }
-                                firstInitBLE()
                                 //binding.radioEQUser2.isChecked = true
                             }
                         }
+                        firstInitBLE()
                         false
                     }
-                    return false
                 }
                 1 -> {
                     popupLayout2.showMessage5 {
@@ -411,23 +448,32 @@ class MainActivity : AppCompatActivity() {
             return false
         }
 
-        fun calculatePEQ(result: FloatArray) {
-            var isCanceled = false
-            popupLayout2.showMessage3(chirp, result,
-                listenerCanceled = {
-                    isCanceled = true
-                },
-                listener = { value, dbValue, IIRcoef ->
-                    if (isCanceled) return@showMessage3 false
+        popupLayout2.showMessage2(
+            chirp,
+            listenerQuit = {
+                firstInitBLE()
 
-                    return@showMessage3 completeCalculatePEQ(chirp, result, IIRcoef, value, dbValue)
-                }
-            )
-        }
+                return@showMessage2 false
+            },
+            listener = { result ->
+                var isCanceled = false
+                popupLayout2.showMessage3(
+                    chirp, result,
+                    listenerCanceled = {
+                        isCanceled = true
+                        firstInitBLE()
 
-        popupLayout2.showMessage2(chirp) { result ->
-            calculatePEQ(result)
-            return@showMessage2 true
-        }
+                        return@showMessage3 false
+                    },
+                    listener = { value, dbValue, IIRcoef ->
+                        if (isCanceled) return@showMessage3 false
+
+                        return@showMessage3 completeCalculatePEQ(chirp, result, IIRcoef, value, dbValue)
+                    }
+                )
+
+                return@showMessage2 true
+            }
+        )
     }
 }

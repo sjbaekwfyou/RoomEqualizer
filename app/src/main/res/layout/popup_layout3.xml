@@ -18,7 +18,7 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="5"
+            android:layout_weight="6"
             android:orientation="horizontal">
 
             <TextView
@@ -36,42 +36,60 @@
             android:layout_weight="3"
             android:orientation="vertical">
 
-            <android.widget.Button
-                android:id="@+id/btnUser1"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
-                android:layout_marginLeft="20dp"
-                android:layout_marginRight="20dp"
-                android:layout_marginBottom="10dp"
                 android:layout_weight="1"
-                android:background="@drawable/bg_button"
-                android:text="@string/eq_user1"
-                android:textColor="@color/btn_text_color" />
+                android:gravity="center"
+                android:orientation="horizontal">
 
-            <android.widget.Button
-                android:id="@+id/btnUser2"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_marginLeft="20dp"
-                android:layout_marginTop="5dp"
-                android:layout_marginRight="20dp"
-                android:layout_marginBottom="5dp"
-                android:layout_weight="1"
-                android:background="@drawable/bg_button"
-                android:text="@string/eq_user2"
-                android:textColor="@color/btn_text_color" />
+                <android.widget.Button
+                    android:id="@+id/btnUser1"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginLeft="20dp"
+                    android:layout_marginRight="20dp"
+                    android:background="@drawable/bg_button"
+                    android:text="@string/eq_user1"
+                    android:textColor="@color/btn_text_color" />
+            </LinearLayout>
 
-            <android.widget.Button
-                android:id="@+id/btnCancel"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
-                android:layout_marginLeft="20dp"
-                android:layout_marginTop="10dp"
-                android:layout_marginRight="20dp"
                 android:layout_weight="1"
-                android:background="@drawable/bg_button"
-                android:text="@string/cancel"
-                android:textColor="@color/btn_text_color" />
+                android:gravity="center"
+                android:orientation="horizontal">
+
+                <android.widget.Button
+                    android:id="@+id/btnUser2"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginLeft="20dp"
+                    android:layout_marginRight="20dp"
+                    android:background="@drawable/bg_button"
+                    android:text="@string/eq_user2"
+                    android:textColor="@color/btn_text_color" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="horizontal">
+
+                <android.widget.Button
+                    android:id="@+id/btnCancel"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginLeft="20dp"
+                    android:layout_marginRight="20dp"
+                    android:background="@drawable/bg_button"
+                    android:text="@string/cancel"
+                    android:textColor="@color/btn_text_color" />
+            </LinearLayout>
+
         </LinearLayout>
 
     </LinearLayout>

@@ -22,6 +22,7 @@ import android.bluetooth.BluetoothStatusCodes
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.expamedia.roomequalizer.MainActivity
 import com.expamedia.roomequalizer.R
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -142,7 +143,7 @@ class BleDeviceManager(context: Context) : ViewModel() {
     fun startScan(scaleCallback: (BleDevice) -> Unit) {
         val btAdapter = adapter ?: run {
             Log.e(TAG, "❌ BluetoothAdapter is null — BLE not supported on this device.")
-            Toast.makeText(context, "This device does not support BLE.", Toast.LENGTH_SHORT).show()
+            MainActivity.ToastUtil.show(context, "This device does not support BLE.")
             return
         }
 
@@ -162,13 +163,13 @@ class BleDeviceManager(context: Context) : ViewModel() {
         }
         if (missing.isNotEmpty()) {
             Log.w(TAG, "⚠️ Permission denied: $missing")
-            Toast.makeText(context, "Please allow nearby devices permission.", Toast.LENGTH_SHORT).show()
+            MainActivity.ToastUtil.show(context, "Please allow nearby devices permission.")
             return
         }
 
         val scanner = btAdapter.bluetoothLeScanner ?: run {
             Log.e(TAG, "❌ BluetoothLeScanner is null — Failed to create BLE scanner.")
-            Toast.makeText(context, "Cannot start BLE scan.", Toast.LENGTH_SHORT).show()
+            MainActivity.ToastUtil.show(context, "Cannot start BLE scan.")
             return
         }
 
@@ -249,7 +250,7 @@ class BleDeviceManager(context: Context) : ViewModel() {
                 if (_devices.value.isEmpty()) {
                     _scanState.value = ScanState.Error("No devices found in 10 seconds.")
                     Log.w(TAG, "⏰ BLE device not found for 10 seconds")
-                    Toast.makeText(context, "No BLE devices found nearby.", Toast.LENGTH_SHORT).show()
+                    MainActivity.ToastUtil.show(context, "No BLE devices found nearby.")
                 }
             }
         }
@@ -314,11 +315,10 @@ class BleDeviceManager(context: Context) : ViewModel() {
                 if (status != BluetoothGatt.GATT_SUCCESS) return
 
                 val service = gatt.getService(SERVICE_UUID) ?: run {
-                    Toast.makeText(
+                    MainActivity.ToastUtil.show(
                         context,
-                        "Unsupported device or connection failed.",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                        "Unsupported device or connection failed."
+                    )
                     return
                 }
 
@@ -428,11 +428,11 @@ class BleDeviceManager(context: Context) : ViewModel() {
         Log.d(TAG_BLE_DATA_TX, "TX (${bytes.size}B): ${bytes.hex()}")
 
         val g = gatt ?: run {
-            Toast.makeText(context, R.string.toast_ble_not_connected, Toast.LENGTH_SHORT).show()
+            MainActivity.ToastUtil.show(context, context.getString(R.string.toast_ble_not_connected))
             return false
         }
         val ch = writeChar ?: run {
-            Toast.makeText(context, R.string.toast_server_not_ready_yet, Toast.LENGTH_SHORT).show()
+            MainActivity.ToastUtil.show(context, context.getString(R.string.toast_server_not_ready_yet))
             return false
         }
 
@@ -489,7 +489,7 @@ class BleDeviceManager(context: Context) : ViewModel() {
                         2 -> listenerGetEqMode(EqModeType.EQ_MODE_USER2)
                     }
                 } else {
-                    Toast.makeText(context, "UNKNOWN: ${extracted.hex()}", Toast.LENGTH_SHORT).show()
+                    MainActivity.ToastUtil.show(context, "UNKNOWN: ${extracted.hex()}")
                 }
             }
         }

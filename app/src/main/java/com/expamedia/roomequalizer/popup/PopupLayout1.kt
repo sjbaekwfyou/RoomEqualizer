@@ -20,17 +20,22 @@ class PopupLayout1(private val context: Context) {
             }
     }
 
-    fun show(listener: (() -> Unit)) {
+    fun show(listenerStart: (() -> Boolean), listenerCancel: (() -> Boolean)) {
         if (!dialog.isShowing) {
             dialog.show()
         }
 
         binding.btnStartMeasurement.setOnClickListener {
-            listener.invoke()
+            if (listenerStart.invoke()) {
+                return@setOnClickListener
+            }
             dismiss()
         }
 
         binding.btnCancelMeasurement.setOnClickListener {
+            if (listenerCancel.invoke()) {
+                return@setOnClickListener
+            }
             dismiss()
         }
     }

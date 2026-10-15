@@ -29,19 +29,26 @@
                 android:text="Message"
                 android:textColor="@color/gray"
                 android:textSize="24sp" />
+
         </LinearLayout>
 
-        <android.widget.Button
-            android:id="@+id/btnButtonID"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_marginLeft="20dp"
-            android:layout_marginTop="10dp"
-            android:layout_marginRight="20dp"
             android:layout_weight="1"
-            android:background="@drawable/bg_button"
-            android:text="Button ID"
-            android:textColor="@color/btn_text_color" />
+            android:orientation="vertical">
+
+            <android.widget.Button
+                android:id="@+id/btnButtonID"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="20dp"
+                android:layout_marginTop="10dp"
+                android:layout_marginRight="20dp"
+                android:background="@drawable/bg_button"
+                android:text="Button ID"
+                android:textColor="@color/btn_text_color" />
+        </LinearLayout>
 
     </LinearLayout>
 
