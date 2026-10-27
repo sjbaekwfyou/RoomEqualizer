@@ -16,11 +16,21 @@
         android:orientation="vertical">
 
         <TextView
+            android:id="@+id/tvVersion"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="16dp"
+            android:layout_marginRight="16dp"
+            android:text="version 0.0"
+            android:textAlignment="viewEnd"
+            android:textColor="@color/gray"
+            android:textSize="14sp" />
+
+        <TextView
             android:id="@+id/textView"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginLeft="16dp"
-            android:layout_marginTop="10dp"
             android:layout_marginRight="16dp"
             android:layout_marginBottom="20dp"
             android:text="@string/ble_connection"

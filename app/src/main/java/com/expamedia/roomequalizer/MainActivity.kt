@@ -89,6 +89,13 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        val versionName = try {
+            packageManager.getPackageInfo(packageName, 0).versionName
+        } catch (e: Exception) {
+            "Unknown"
+        }
+        binding.tvVersion.text = "version:" + versionName
+
         showBLEConnectivity(false)
 
         popupLayout1 = PopupLayout1(this)

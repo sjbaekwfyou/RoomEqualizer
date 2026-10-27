@@ -307,6 +307,7 @@ class BleDeviceManager(context: Context) : ViewModel() {
                     BluetoothProfile.STATE_CONNECTED -> {
                         Log.i(TAG, "✅ GATT connected, starting service discovery")
                         parseCmdData.clear()
+                        currentEqBankStatus.fill(false)
 
                         this@BleDeviceManager.gatt = gatt
                         gatt.discoverServices()
@@ -428,12 +429,12 @@ class BleDeviceManager(context: Context) : ViewModel() {
     @SuppressLint("MissingPermission")
     fun disconnect() {
         parseCmdData.clear()
+        currentEqBankStatus.fill(false)
 
         try {
             gatt?.disconnect()
             gatt?.close()
             Log.i(TAG, "�� GATT disconnected")
-
         } catch (e: Exception) {
             Log.e(TAG, "❌ Error during disconnect: ${e.message}")
         } finally {
