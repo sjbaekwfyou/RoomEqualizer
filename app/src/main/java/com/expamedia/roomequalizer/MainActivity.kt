@@ -23,6 +23,7 @@ import com.expamedia.roomequalizer.popup.PopupLayout1
 import com.expamedia.roomequalizer.popup.PopupLayout2
 import com.expamedia.roomequalizer.popup.PopupLayout3
 import com.expamedia.roomequalizer.popup.PopupLayoutBluetooth
+import com.expamedia.roomequalizer.popup.PopupLayoutEQBankStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -44,6 +45,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var popupLayout3: PopupLayout3
 
     private var popupLayoutBluetooth: PopupLayoutBluetooth? = null
+
+    private lateinit var popupLayoutEQBankStatus: PopupLayoutEQBankStatus
 
     private var receiveJob: Job? = null // 데이터 수신 루프 관리용 코루틴 Job
 
@@ -91,6 +94,8 @@ class MainActivity : AppCompatActivity() {
         popupLayout1 = PopupLayout1(this)
         popupLayout2 = PopupLayout2(this, audioDeviceManager, nativeEqualizer)
         popupLayout3 = PopupLayout3(this)
+
+        popupLayoutEQBankStatus = PopupLayoutEQBankStatus(this)
 
         binding.btnBLEScan.setOnClickListener {
             bleDeviceManager.disconnect()
@@ -174,13 +179,13 @@ class MainActivity : AppCompatActivity() {
                     this@MainActivity,
                     getString(R.string.toast_ble_not_connected)
                 )
-                return@setOnClickListener
+//                return@setOnClickListener
             }
 
             lifecycleScope.launch {
                 bleDeviceManager.modeSetting(BleDeviceManager.ModeType.MEASUREMENT_MODE)
-                showPopupLayoutMeasurement()
             }
+            showPopupLayoutMeasurement()
         }
 
         binding.btnExit.setOnClickListener {
@@ -219,12 +224,10 @@ class MainActivity : AppCompatActivity() {
      * 최초 BLE 상태
      * 최초 BLE 연결 및 measurement 완료 후 호출
      */
-    private fun firstInitBLE() {
-        Log.d("###", "firstInitBLE")
-        lifecycleScope.launch(Dispatchers.Main) {
-            bleDeviceManager.modeSetting(BleDeviceManager.ModeType.PLAY_MODE)
-            bleDeviceManager.getEQMode()
-        }
+    private suspend fun firstInitBLE() {
+        bleDeviceManager.getEQBankStatus()
+        bleDeviceManager.modeSetting(BleDeviceManager.ModeType.PLAY_MODE)
+        bleDeviceManager.getEQMode()
     }
 
     private fun showBLEConnectivity(connected: Boolean) {
@@ -293,23 +296,24 @@ class MainActivity : AppCompatActivity() {
                 }, receiveCallback = { receivedData ->
                     lifecycleScope.launch(Dispatchers.Main) {
                         //ToastUtil.show(this@MainActivity, "\n[수신]: ${receivedData.size}")
-                        bleDeviceManager.parseCmd(receivedData, listenerMode = { modeType ->
-                            ToastUtil.show(
-                                this@MainActivity,
-                                "Mode set to $modeType"
-                            )
-                        }, listenerEqMode = { eqModeType ->
-                            ToastUtil.show(
-                                this@MainActivity,
-                                "EqMode set to $eqModeType"
-                            )
-                        }, listenerGetEqMode = { eqModeType ->
-                            when (eqModeType) {
-                                BleDeviceManager.EqModeType.EQ_MODE_DEFAULT -> binding.radioEQDefault.isChecked = true
-                                BleDeviceManager.EqModeType.EQ_MODE_USER1 -> binding.radioEQUser1.isChecked = true
-                                BleDeviceManager.EqModeType.EQ_MODE_USER2 -> binding.radioEQUser2.isChecked = true
-                            }
-                        })
+                        bleDeviceManager.parseCmd(receivedData,
+                            listenerMode = { modeType ->
+                                ToastUtil.show(
+                                    this@MainActivity,
+                                    "Mode set to $modeType"
+                                )
+                            }, listenerEqMode = { eqModeType ->
+                                ToastUtil.show(
+                                    this@MainActivity,
+                                    "EqMode set to $eqModeType"
+                                )
+                            }, listenerGetEqMode = { eqModeType ->
+                                when (eqModeType) {
+                                    BleDeviceManager.EqModeType.EQ_MODE_DEFAULT -> binding.radioEQDefault.isChecked = true
+                                    BleDeviceManager.EqModeType.EQ_MODE_USER1 -> binding.radioEQUser1.isChecked = true
+                                    BleDeviceManager.EqModeType.EQ_MODE_USER2 -> binding.radioEQUser2.isChecked = true
+                                }
+                            })
                     }
                 })
             }
@@ -366,7 +370,9 @@ class MainActivity : AppCompatActivity() {
                         false
                     },
                     listenerCancel = {
-                        firstInitBLE()
+                        lifecycleScope.launch {
+                            firstInitBLE()
+                        }
                         false
                     }
                 )
@@ -374,7 +380,9 @@ class MainActivity : AppCompatActivity() {
             },
             listenerNG = {
                 popupLayout2.showMessage4 {
-                    firstInitBLE()
+                    lifecycleScope.launch {
+                        firstInitBLE()
+                    }
                     false
                 }
                 true
@@ -384,8 +392,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun startMeasurement() {
         fun completeCalculatePEQ(
-            chirp: FloatArray,
-            result: FloatArray,
             IIRcoef: FloatArray,
             value: Int,
             dbValue: Int
@@ -393,6 +399,30 @@ class MainActivity : AppCompatActivity() {
             when (value) {
                 0 -> {
                     popupLayout3.show { eqUser ->
+                        fun checkEQBankStatusAndSaveEQMode(eqModeType: BleDeviceManager.EqModeType, IIRcoef: FloatArray): Boolean {
+                            if (bleDeviceManager.eqBankStatus(eqModeType)) {
+                                popupLayoutEQBankStatus.show(eqModeType,
+                                    listener = {
+                                        lifecycleScope.launch {
+                                            bleDeviceManager.saveEQMode(eqModeType, IIRcoef)
+                                            firstInitBLE()
+                                        }
+
+                                        popupLayout3.dismiss()
+                                        return@show false
+                                    }, listenerCancel =  {
+                                        return@show false
+                                    })
+                                return true
+                            }
+
+                            lifecycleScope.launch {
+                                bleDeviceManager.saveEQMode(eqModeType, IIRcoef)
+                                firstInitBLE()
+                            }
+                            return false
+                        }
+
                         when (eqUser) {
                             PopupLayout3.EqUser.Cancel -> {
                                 ToastUtil.show(
@@ -401,25 +431,18 @@ class MainActivity : AppCompatActivity() {
                                 )
                             }
                             PopupLayout3.EqUser.User1 -> {
-                                lifecycleScope.launch {
-                                    bleDeviceManager.saveEQMode(
-                                        BleDeviceManager.EqModeType.EQ_MODE_USER1,
-                                        IIRcoef
-                                    )
-                                }
+                                return@show checkEQBankStatusAndSaveEQMode(BleDeviceManager.EqModeType.EQ_MODE_USER1, IIRcoef)
                                 //binding.radioEQUser1.isChecked = true
                             }
                             PopupLayout3.EqUser.User2 -> {
-                                lifecycleScope.launch {
-                                    bleDeviceManager.saveEQMode(
-                                        BleDeviceManager.EqModeType.EQ_MODE_USER2,
-                                        IIRcoef
-                                    )
-                                }
+                                return@show checkEQBankStatusAndSaveEQMode(BleDeviceManager.EqModeType.EQ_MODE_USER2, IIRcoef)
                                 //binding.radioEQUser2.isChecked = true
                             }
                         }
-                        firstInitBLE()
+
+                        lifecycleScope.launch {
+                            firstInitBLE()
+                        }
                         false
                     }
                 }
@@ -451,7 +474,9 @@ class MainActivity : AppCompatActivity() {
         popupLayout2.showMessage2(
             chirp,
             listenerQuit = {
-                firstInitBLE()
+                lifecycleScope.launch {
+                    firstInitBLE()
+                }
 
                 return@showMessage2 false
             },
@@ -461,14 +486,17 @@ class MainActivity : AppCompatActivity() {
                     chirp, result,
                     listenerCanceled = {
                         isCanceled = true
-                        firstInitBLE()
+
+                        lifecycleScope.launch {
+                            firstInitBLE()
+                        }
 
                         return@showMessage3 false
                     },
                     listener = { value, dbValue, IIRcoef ->
                         if (isCanceled) return@showMessage3 false
 
-                        return@showMessage3 completeCalculatePEQ(chirp, result, IIRcoef, value, dbValue)
+                        return@showMessage3 completeCalculatePEQ(IIRcoef, value, dbValue)
                     }
                 )
 

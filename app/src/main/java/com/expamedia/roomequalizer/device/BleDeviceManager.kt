@@ -136,6 +136,22 @@ class BleDeviceManager(context: Context) : ViewModel() {
     @OptIn(ExperimentalUnsignedTypes::class)
     val cmdGetEqModeRx = ubyteArrayOf(0xedu, 0xb0u, 0x04u, 0x5du).toByteArray()
 
+    /*
+     * TODO :
+     *  cmdGetEqBankStatusTx, cmdGetEqBankStatusRx는 현재 cmdGetEqModeTx와 cmdGetEqModeRx와 동일하게 적용해 두었습니다.
+     *  수정하셔야 합니다.
+     */
+    @OptIn(ExperimentalUnsignedTypes::class)
+    val cmdGetEqBankStatusTx = ubyteArrayOf(0xecu, 0xb0u, 0x05u, 0x5eu).toByteArray()
+    @OptIn(ExperimentalUnsignedTypes::class)
+    val cmdGetEqBankStatusRx = ubyteArrayOf(0xedu, 0xb0u, 0x04u, 0x5du).toByteArray()
+
+    /*
+     * currentEqBankStatus[0] : User1
+     * currentEqBankStatus[1] : User2
+     */
+    var currentEqBankStatus = booleanArrayOf(false, false)
+
     private fun ByteArray.hex(): String = joinToString(" ") { "%02X".format(it) }
 
     /** �� 스캔 시작 (10초 후 자동 중지) */
@@ -290,6 +306,8 @@ class BleDeviceManager(context: Context) : ViewModel() {
                 when (newState) {
                     BluetoothProfile.STATE_CONNECTED -> {
                         Log.i(TAG, "✅ GATT connected, starting service discovery")
+                        parseCmdData.clear()
+
                         this@BleDeviceManager.gatt = gatt
                         gatt.discoverServices()
 
@@ -409,6 +427,8 @@ class BleDeviceManager(context: Context) : ViewModel() {
 
     @SuppressLint("MissingPermission")
     fun disconnect() {
+        parseCmdData.clear()
+
         try {
             gatt?.disconnect()
             gatt?.close()
@@ -483,12 +503,23 @@ class BleDeviceManager(context: Context) : ViewModel() {
                     val eqMode = extracted[2] - cmdGetEqModeRx[2]
                     Log.d(TAG, "parseCmd. getEQMode. received:$eqMode eqMode:$eqMode")
 
-                    when (eqMode) {
-                        0 -> listenerGetEqMode(EqModeType.EQ_MODE_DEFAULT)
-                        1 -> listenerGetEqMode(EqModeType.EQ_MODE_USER1)
-                        2 -> listenerGetEqMode(EqModeType.EQ_MODE_USER2)
+                    val eqModeType = when (eqMode) {
+                        1 -> EqModeType.EQ_MODE_USER1
+                        2 -> EqModeType.EQ_MODE_USER2
+                        else -> EqModeType.EQ_MODE_DEFAULT
                     }
-                } else {
+                    listenerGetEqMode(eqModeType)
+                } else if(extracted[0] == cmdGetEqBankStatusRx[0] && extracted[1] == cmdGetEqBankStatusRx[1] && extracted[3] == cmdGetEqBankStatusRx[3]) {
+                    Log.d(TAG, "parseCmd. getEQBankMode")
+                    /*
+                     * TODO :
+                     *  cmdGetEqBankStatusTx, cmdGetEqBankStatusRx는 현재 cmdGetEqModeTx와 cmdGetEqModeRx와 동일하게 적용해 두었습니다.
+                     *  결과값을 currentEqBankStatus에 저장해야 합니다.
+                     *  currentEqBankStatus[0] : User1
+                     *  currentEqBankStatus[1] : User2
+                     */
+                }
+                else {
                     MainActivity.ToastUtil.show(context, "UNKNOWN: ${extracted.hex()}")
                 }
             }
@@ -513,17 +544,12 @@ class BleDeviceManager(context: Context) : ViewModel() {
     suspend fun setEQMode(eqModeType: EqModeType) {
         Log.d(TAG, "setEQMode. $eqModeType")
 
-        when(eqModeType) {
-            EqModeType.EQ_MODE_DEFAULT -> {
-                write(cmdEqModeDefaultTx)
-            }
-            EqModeType.EQ_MODE_USER1 -> {
-                write(cmdEqModeUser1Tx)
-            }
-            EqModeType.EQ_MODE_USER2 -> {
-                write(cmdEqModeUser2Tx)
-            }
+        val cmdTx = when (eqModeType) {
+            EqModeType.EQ_MODE_DEFAULT -> cmdEqModeDefaultTx
+            EqModeType.EQ_MODE_USER1 -> cmdEqModeUser1Tx
+            EqModeType.EQ_MODE_USER2 -> cmdEqModeUser2Tx
         }
+        write(cmdTx)
     }
 
     // Bluetooth control(BLE)을 통하여 4byte 제어 데이터를 전송하고 4byte 회신을 수신
@@ -554,6 +580,20 @@ class BleDeviceManager(context: Context) : ViewModel() {
             EqModeType.EQ_MODE_DEFAULT -> {
                 Log.d(TAG, "saveEQMode. Default. not supported")
             }
+        }
+    }
+
+    suspend fun getEQBankStatus() {
+        Log.d(TAG, "getEQBankStatus.")
+
+        write(cmdGetEqBankStatusTx)
+    }
+
+    fun eqBankStatus(eqModeType: EqModeType): Boolean {
+        return when(eqModeType) {
+            EqModeType.EQ_MODE_USER1 -> currentEqBankStatus[0]
+            EqModeType.EQ_MODE_USER2 -> currentEqBankStatus[1]
+            else -> false
         }
     }
 }

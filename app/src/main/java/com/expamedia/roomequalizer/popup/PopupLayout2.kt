@@ -61,11 +61,11 @@ class PopupLayout2(private val context: Context, private val audioDeviceManager:
     private fun getTVMessage(messageType: MessageType, value: Int): String {
         return when (messageType) {
             MessageType.NONE -> ""
-            MessageType.Message1 -> context.getString(R.string.noti_message1)
-            MessageType.Message2 -> context.getString(R.string.noti_message2)
-            MessageType.Message3 -> context.getString(R.string.noti_message3)
-            MessageType.Message4 -> context.getString(R.string.noti_message4)
-            MessageType.Message5 -> context.getString(R.string.noti_message5)
+            MessageType.Message1 -> "Monitoring ambient noise level. Please wait…"
+            MessageType.Message2 -> "Measurement sequence progressing…"
+            MessageType.Message3 -> "Measurement result analysis progressing…"
+            MessageType.Message4 -> "Ambient noise level is high. Please remove noise sources and try again."
+            MessageType.Message5 -> "Noise detected during measurement. Remove noise source and tap RESTART button."
             MessageType.Message6 -> "Please increase main volume by $value dB and try again."
             MessageType.Message7 -> "Please decrease main volume by $value dB and try again."
         }

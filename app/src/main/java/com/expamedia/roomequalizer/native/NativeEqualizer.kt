@@ -30,31 +30,41 @@ object WavFileWriter {
         val resolver = context.contentResolver
         val relativePath = "${Environment.DIRECTORY_MUSIC}/$subFolder"
 
+        // 1. 해당 경로에 동일한 파일 이름이 존재하면 기존 파일 삭제
         val existingUri = getExistingAudioUri(context, fileName, relativePath)
-        val targetUri: Uri = if (existingUri != null) {
-            existingUri
-        } else {
-            val contentValues = ContentValues().apply {
-                put(MediaStore.Audio.Media.DISPLAY_NAME, fileName)
-                put(MediaStore.Audio.Media.MIME_TYPE, "audio/wav")
-
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    put(MediaStore.Audio.Media.RELATIVE_PATH, relativePath)
-                    put(MediaStore.Audio.Media.IS_PENDING, 1)
-                }
+        existingUri?.let { uri ->
+            try {
+                resolver.delete(uri, null, null)
+                Log.d(TAG, "기존 파일 삭제 성공: $fileName")
+            } catch (e: Exception) {
+                Log.e(TAG, "기존 파일 삭제 실패: ${e.message}", e)
             }
-            resolver.insert(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, contentValues)
-                ?: run {
-                    return false
-                }
         }
 
+        // 2. 새 파일 항목 생성
+        val contentValues = ContentValues().apply {
+            put(MediaStore.Audio.Media.DISPLAY_NAME, fileName)
+            put(MediaStore.Audio.Media.MIME_TYPE, "audio/wav")
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                put(MediaStore.Audio.Media.RELATIVE_PATH, relativePath)
+                put(MediaStore.Audio.Media.IS_PENDING, 1)
+            }
+        }
+
+        val targetUri = resolver.insert(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, contentValues)
+            ?: run {
+                Log.e(TAG, "MediaStore insert 실패")
+                return false
+            }
+
+        // 3. 파일 데이터 기록
         return try {
-            resolver.openOutputStream(targetUri, "rwt")?.use { outputStream ->
+            resolver.openOutputStream(targetUri)?.use { outputStream ->
                 writeWavData(outputStream, buffer, sampleRate, channels)
             } ?: throw IOException("Failed to open output stream for URI: $targetUri")
 
-            if (existingUri == null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 val updateValues = ContentValues().apply {
                     put(MediaStore.Audio.Media.IS_PENDING, 0)
                 }
@@ -63,8 +73,11 @@ object WavFileWriter {
 
             true
         } catch (e: Exception) {
-            if (existingUri == null) {
+            Log.e(TAG, "WAV 파일 저장 실패: ${e.message}", e)
+            try {
                 resolver.delete(targetUri, null, null)
+            } catch (_: Exception) {
+                // ignore
             }
             false
         }
